@@ -1,0 +1,5 @@
+
+{
+  "name": "Tenancy Tracker",
+  "description": "A web application for landlords and tenants to track rent payments and records. Features separate dashboards for admin (landlord) and renter roles with mock data persistence."
+}

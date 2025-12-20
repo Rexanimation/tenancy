@@ -11,7 +11,7 @@ RUN npm install
 COPY . .
 
 # Build frontend
-RUN npm run build
+RUN npx vite build
 
 # Production Stage
 FROM node:18-alpine

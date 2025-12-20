@@ -2,39 +2,36 @@
 FROM node:18-alpine as builder
 WORKDIR /app
 
-# Copy package files (root)
-COPY package.json package-lock.json ./
-# Install root dependencies (including dev deps for build)
+# Copy root package files (if any workspace logic existed, but now we go into frontend)
+# We need to build frontend which is now in /frontend subdirectory
+
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
-# Copy source code
-COPY . .
-
-# Build frontend
+# Copy frontend source code
+COPY frontend/ ./
 RUN npx vite build
 
 # Production Stage
 FROM node:18-alpine
-
 WORKDIR /app
 
-# Copy server files
-COPY server/package.json server/package-lock.json* ./server/
-WORKDIR /app/server
+# Setup Backend
+WORKDIR /app/backend
+COPY backend/package.json backend/package-lock.json* ./
 RUN npm install --production
 
-# Copy server code
-COPY server/ ./
+# Copy backend code
+COPY backend/ ./
 
-# Copy built frontend from builder stage
-COPY --from=builder /app/dist ../dist
+# Copy built frontend from builder stage to 'frontend/dist' relative to backend
+COPY --from=builder /app/frontend/dist ../frontend/dist
 
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=10000
 
-# Expose port (Render uses 10000 by default often, or 5000)
 EXPOSE 10000
 
-# Start command
 CMD ["node", "index.js"]

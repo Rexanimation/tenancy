@@ -65,7 +65,8 @@ app.use('/api/payments', paymentRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-    const distPath = path.join(__dirname, '../dist');
+    // In Dockerfile, we copy frontend/dist to ../frontend/dist relative to backend
+    const distPath = path.join(__dirname, '../frontend/dist');
     app.use(express.static(distPath));
 
     // Handle React routing, return all requests to React app

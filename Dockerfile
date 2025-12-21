@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:18-alpine as builder
+FROM node:22-alpine as builder
 WORKDIR /app
 
 # Copy root package files (if any workspace logic existed, but now we go into frontend)
@@ -14,7 +14,7 @@ COPY frontend/ ./
 RUN npx vite build
 
 # Production Stage
-FROM node:18-alpine
+FROM node:22-alpine
 WORKDIR /app
 
 # Setup Backend

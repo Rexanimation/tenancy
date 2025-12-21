@@ -89,17 +89,52 @@ app.use((err, req, res, next) => {
 // Database connection
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tenancy-tracker')
-    .then(() => {
+const connectDB = async () => {
+    try {
+        let mongoURI = process.env.MONGODB_URI;
+
+        if (process.env.NODE_ENV === 'production') {
+            if (!mongoURI) {
+                console.error('❌ FATAL ERROR: MONGODB_URI environment variable is not defined.');
+                console.error('👉 Tip: Add MONGODB_URI to your Render Environment Variables.');
+                process.exit(1);
+            }
+            if (mongoURI.includes('localhost') || mongoURI.includes('127.0.0.1')) {
+                console.warn('⚠️ WARNING: MONGODB_URI contains "localhost" in production mode. This will likely fail.');
+            }
+        } else {
+            // Fallback for local development only
+            if (!mongoURI) {
+                console.log('ℹ️  MONGODB_URI not found, falling back to local database.');
+                mongoURI = 'mongodb://localhost:27017/tenancy-tracker';
+            }
+        }
+
+        console.log(`⏳ Connecting to MongoDB... (${process.env.NODE_ENV === 'production' ? 'Production' : 'Development'})`);
+
+        await mongoose.connect(mongoURI, {
+            serverSelectionTimeoutMS: 5000, // Fail fast after 5s
+        });
+
         console.log('✅ Connected to MongoDB');
+
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
+            if (process.env.FRONTEND_URL) {
+                console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
+            }
         });
-    })
-    .catch((error) => {
-        console.error('❌ MongoDB connection error:', error);
+
+    } catch (error) {
+        console.error('❌ MongoDB Connection Error:', error.message);
+        if (error.name === 'MongooseServerSelectionError') {
+            console.error('👉 Check if your IP is whitelisted in MongoDB Atlas (Network Access -> Allow 0.0.0.0/0)');
+            console.error('👉 Check if your username/password in the connection string are correct.');
+        }
         process.exit(1);
-    });
+    }
+};
+
+connectDB();
 
 export default app;

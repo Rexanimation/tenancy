@@ -10,6 +10,13 @@ interface PaymentPageProps {
     onPaymentComplete: () => void;
 }
 
+// Add Razorpay type
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
+}
+
 export default function PaymentPage({ record, onClose, onPaymentComplete }: PaymentPageProps) {
     const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
     const [loading, setLoading] = useState(true);
@@ -18,7 +25,7 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
     const [submitting, setSubmitting] = useState(false);
     const [step, setStep] = useState<'payment' | 'confirm' | 'success'>('payment');
     const [transactionId, setTransactionId] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState<'upi' | 'phonepe'>('phonepe');
+    const [paymentMethod, setPaymentMethod] = useState<'upi' | 'razorpay'>('razorpay');
 
     const totalAmount = record.rent + record.electricity + record.parking +
         (record.penalties || 0) + (record.dues || 0) +
@@ -39,28 +46,80 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
         fetchPaymentSettings();
     }, []);
 
-    const handlePhonePePayment = async () => {
+    const handleRazorpayPayment = async () => {
         try {
             setSubmitting(true);
 
-            // Initiate PhonePe payment
-            const response = await paymentAPI.initiatePhonePePayment(record._id);
+            // 1. Create order on backend
+            const orderResponse = await paymentAPI.initiateRazorpayPayment(record._id);
 
-            if (response.success && response.redirectUrl) {
-                // Store transaction ID for verification later
-                localStorage.setItem('pendingPhonePeTransaction', response.transactionId);
-
-                // Redirect to PhonePe payment page
-                window.location.href = response.redirectUrl;
-            } else {
-                alert(response.message || 'Failed to initiate payment');
+            if (!orderResponse.success) {
+                alert(orderResponse.message || 'Failed to initiate payment');
                 setSubmitting(false);
+                return;
             }
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: orderResponse.key,
+                amount: orderResponse.order.amount,
+                currency: orderResponse.order.currency,
+                name: "Tenancy Tracker",
+                description: "Rent Payment",
+                // image: "https://example.com/your_logo", // Optional
+                order_id: orderResponse.order.id,
+                handler: async function (response: any) {
+                    // 3. Verify payment on backend
+                    try {
+                        const verifyResponse = await paymentAPI.verifyRazorpayPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            transactionObjectId: orderResponse.transactionId
+                        });
+
+                        if (verifyResponse.success) {
+                            setStep('success');
+                            setTimeout(() => {
+                                onPaymentComplete();
+                                onClose();
+                            }, 2000);
+                        } else {
+                            alert('Payment verification failed');
+                        }
+                    } catch (error) {
+                        console.error('Verification error:', error);
+                        alert('Payment verification failed');
+                    }
+                },
+                prefill: {
+                    name: record.tenant.name,
+                    email: record.tenant.email,
+                    contact: "" // Can be added if available in tenant record
+                },
+                notes: {
+                    record_id: record._id
+                },
+                theme: {
+                    color: "#4F46E5"
+                }
+            };
+
+            const rzp1 = new window.Razorpay(options);
+            rzp1.on('payment.failed', function (response: any) {
+                alert(response.error.description);
+                setSubmitting(false);
+            });
+            rzp1.open();
+            setSubmitting(false); // Reset submitting state as the modal handles it now
+
         } catch (error: any) {
+            console.error('Razorpay init error:', error);
             alert(error.response?.data?.message || 'Failed to initiate payment');
             setSubmitting(false);
         }
     };
+
 
     const handleInitiatePayment = async () => {
         try {
@@ -165,17 +224,17 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
                             <h4 className="font-semibold text-slate-800 mb-3">Choose Payment Method:</h4>
                             <div className="grid grid-cols-2 gap-3">
                                 <button
-                                    onClick={() => setPaymentMethod('phonepe')}
-                                    className={`p-4 rounded-lg border-2 transition-all ${paymentMethod === 'phonepe'
+                                    onClick={() => setPaymentMethod('razorpay')}
+                                    className={`p-4 rounded-lg border-2 transition-all ${paymentMethod === 'razorpay'
                                         ? 'border-indigo-500 bg-indigo-50'
                                         : 'border-slate-200 hover:border-slate-300'
                                         }`}
                                 >
-                                    <CreditCard className={`w-8 h-8 mx-auto mb-2 ${paymentMethod === 'phonepe' ? 'text-indigo-600' : 'text-slate-400'
+                                    <CreditCard className={`w-8 h-8 mx-auto mb-2 ${paymentMethod === 'razorpay' ? 'text-indigo-600' : 'text-slate-400'
                                         }`} />
-                                    <p className={`text-sm font-medium ${paymentMethod === 'phonepe' ? 'text-indigo-600' : 'text-slate-600'
+                                    <p className={`text-sm font-medium ${paymentMethod === 'razorpay' ? 'text-indigo-600' : 'text-slate-600'
                                         }`}>
-                                        PhonePe
+                                        Razorpay
                                     </p>
                                     <p className="text-xs text-slate-400 mt-1">Card, UPI, Wallet</p>
                                 </button>
@@ -197,21 +256,21 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
                             </div>
                         </div>
 
-                        {/* PhonePe Payment */}
-                        {paymentMethod === 'phonepe' && (
+                        {/* Razorpay Payment */}
+                        {paymentMethod === 'razorpay' && (
                             <div className="space-y-4">
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                    <p className="text-sm text-green-800">
-                                        <strong>Secure Payment:</strong> Pay instantly using Credit/Debit Card, UPI, NetBanking, or Wallets through PhonePe.
+                                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                                    <p className="text-sm text-indigo-800">
+                                        <strong>Secure Payment:</strong> Pay instantly using Credit/Debit Card, UPI, NetBanking, or Wallets through Razorpay.
                                     </p>
                                 </div>
                                 <button
-                                    onClick={handlePhonePePayment}
+                                    onClick={handleRazorpayPayment}
                                     disabled={submitting}
                                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     <CreditCard className="w-5 h-5" />
-                                    {submitting ? 'Processing...' : 'Pay with PhonePe'}
+                                    {submitting ? 'Processing...' : 'Pay with Razorpay'}
                                 </button>
                             </div>
                         )}

@@ -39,7 +39,7 @@ export interface RecordType {
   date: string; // 'YYYY-MM-DD'
   paidDate?: Date;
   transactionId?: string;
-  paymentMethod?: 'upi' | 'cash' | 'bank_transfer' | 'cashfree' | '';
+  paymentMethod?: 'upi' | 'cash' | 'bank_transfer' | 'razorpay' | '';
 }
 
 export interface NewRecordData {
@@ -63,13 +63,13 @@ export interface Notification {
 
 export interface Transaction {
   _id: string;
-  record: RecordType;
-  tenant: User;
+  record: RecordType | string;
+  tenant: User | string;
   amount: number;
-  paymentMethod: 'upi' | 'cash' | 'bank_transfer' | 'cashfree';
+  paymentMethod: 'upi' | 'cash' | 'bank_transfer' | 'razorpay';
   transactionId?: string;
-  cashfreeOrderId?: string;
-  cashfreePaymentId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
   status: 'pending' | 'verified' | 'failed';
   verifiedBy?: User;
   verifiedAt?: Date;
@@ -80,4 +80,5 @@ export interface Transaction {
 export interface PaymentSettings {
   upiId: string;
   qrCodePath: string;
+  razorpayKeyId?: string;
 }

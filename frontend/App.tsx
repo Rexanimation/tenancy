@@ -4,8 +4,7 @@ import useTenancy from './hooks/useTenancy';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import RenterDashboard from './components/RenterDashboard';
-import PaymentCallback from './components/PaymentCallback';
-
+// Loading component defined above
 const LoadingSpinner: React.FC = () => (
   <div className="min-h-screen bg-slate-100 flex items-center justify-center">
     <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -31,14 +30,6 @@ export default function App() {
     notifications,
     refreshRecords,
   } = useTenancy();
-
-  // Check if we're on the payment callback page
-  const isPaymentCallback = window.location.pathname === '/payment-callback' ||
-    window.location.search.includes('transactionId');
-
-  if (isPaymentCallback) {
-    return <PaymentCallback onComplete={() => window.location.href = '/'} />;
-  }
 
   if (loading) {
     return <LoadingSpinner />;

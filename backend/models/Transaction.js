@@ -17,18 +17,18 @@ const transactionSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['upi', 'cash', 'bank_transfer', 'phonepe'],
+        enum: ['upi', 'cash', 'bank_transfer', 'razorpay'],
         required: true,
     },
     transactionId: {
         type: String,
         default: '',
     },
-    phonePeMerchantTransactionId: {
+    razorpayOrderId: {
         type: String,
         default: '',
     },
-    phonePeTransactionId: {
+    razorpayPaymentId: {
         type: String,
         default: '',
     },

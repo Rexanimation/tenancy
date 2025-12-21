@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Printer, CheckCircle } from 'lucide-react';
-import { Transaction } from '../types';
+import { Transaction, RecordType, User } from '../types';
 import { paymentAPI } from '../utils/api';
 import { formatINR } from '../utils/currency';
 
@@ -64,7 +64,22 @@ export default function PaymentReceipt({ transactionId, onClose }: PaymentReceip
         );
     }
 
-    const record = transaction.record;
+    // Type guards/assertions to handle populated fields
+    const record = transaction.record as unknown as RecordType;
+    const tenant = transaction.tenant as unknown as User;
+
+    // Safety check in case population failed
+    if (!record || !tenant || typeof record === 'string' || typeof tenant === 'string') {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-xl p-8 max-w-2xl w-full text-center">
+                    <p className="text-red-600">Error: Could not load full receipt details</p>
+                    <button onClick={onClose} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Close</button>
+                </div>
+            </div>
+        );
+    }
+
     const totalAmount = record.rent + record.electricity + record.parking;
 
     return (
@@ -129,16 +144,16 @@ export default function PaymentReceipt({ transactionId, onClose }: PaymentReceip
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <p className="text-sm text-slate-600">Name</p>
-                                <p className="font-semibold text-slate-800">{transaction.tenant.name}</p>
+                                <p className="font-semibold text-slate-800">{tenant.name}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-slate-600">Email</p>
-                                <p className="font-semibold text-slate-800">{transaction.tenant.email}</p>
+                                <p className="font-semibold text-slate-800">{tenant.email}</p>
                             </div>
-                            {transaction.tenant.unit && (
+                            {tenant.unit && (
                                 <div>
                                     <p className="text-sm text-slate-600">Unit</p>
-                                    <p className="font-semibold text-slate-800">Unit {transaction.tenant.unit}</p>
+                                    <p className="font-semibold text-slate-800">Unit {tenant.unit}</p>
                                 </div>
                             )}
                             <div>

@@ -68,7 +68,7 @@ const recordSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['', 'upi', 'cash', 'bank_transfer', 'cashfree'],
+        enum: ['', 'upi', 'cash', 'bank_transfer', 'razorpay'],
         default: '',
     },
 }, {

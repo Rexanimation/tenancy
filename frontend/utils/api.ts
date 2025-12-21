@@ -158,14 +158,19 @@ export const paymentAPI = {
         return response.data;
     },
 
-    // PhonePe APIs
-    initiatePhonePePayment: async (recordId: string) => {
-        const response = await api.post('/api/payments/phonepe/initiate', { recordId });
+    // Razorpay APIs
+    initiateRazorpayPayment: async (recordId: string) => {
+        const response = await api.post('/api/payments/razorpay/order', { recordId });
         return response.data;
     },
 
-    checkPhonePeStatus: async (transactionId: string) => {
-        const response = await api.get(`/api/payments/phonepe/status/${transactionId}`);
+    verifyRazorpayPayment: async (data: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+        transactionObjectId: string
+    }) => {
+        const response = await api.post('/api/payments/razorpay/verify', data);
         return response.data;
     },
 };

@@ -11,10 +11,19 @@ import Record from '../models/Record.js';
 const router = express.Router();
 
 // Razorpay Instance
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay;
+try {
+    if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+        razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+    } else {
+        console.warn('RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing. Payment features will be disabled.');
+    }
+} catch (error) {
+    console.warn('Failed to initialize Razorpay:', error.message);
+}
 
 // Configure multer for QR code uploads
 const storage = multer.diskStorage({
@@ -97,6 +106,10 @@ router.post('/settings', protect, adminOnly, upload.single('qrCode'), async (req
 // @access  Private
 router.post('/razorpay/order', protect, approvedOnly, async (req, res) => {
     try {
+        if (!razorpay) {
+            return res.status(503).json({ message: 'Payment gateway not configured' });
+        }
+
         const { recordId } = req.body;
         const record = await Record.findById(recordId).populate('tenant');
 

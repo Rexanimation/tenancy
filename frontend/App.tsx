@@ -4,6 +4,8 @@ import useTenancy from './hooks/useTenancy';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import RenterDashboard from './components/RenterDashboard';
+import Privacy from './components/Privacy';
+import Terms from './components/Terms';
 // Loading component defined above
 const LoadingSpinner: React.FC = () => (
   <div className="min-h-screen bg-slate-100 flex items-center justify-center">
@@ -30,6 +32,11 @@ export default function App() {
     notifications,
     refreshRecords,
   } = useTenancy();
+
+  // Simple routing for static pages
+  const path = window.location.pathname;
+  if (path === '/privacy') return <Privacy />;
+  if (path === '/terms') return <Terms />;
 
   if (loading) {
     return <LoadingSpinner />;

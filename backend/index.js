@@ -35,8 +35,8 @@ uploadDirs.forEach(dir => {
 app.use(cors({
     origin: [
         'http://localhost:5173',
-        'https://tenancy-frontend.onrender.com', // Replace with your actual frontend URL if different
-        'https://tenancy-1.onrender.com', // Self-reference sometimes needed
+        'https://tenancy-frontend.onrender.com',
+        'https://tenancy-backend-2511.onrender.com',
         process.env.FRONTEND_URL
     ].filter(Boolean),
     credentials: true,

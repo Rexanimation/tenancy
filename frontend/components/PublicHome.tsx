@@ -53,7 +53,7 @@ export default function PublicHome({ user }: PublicHomeProps) {
             <footer className="bg-white border-t border-slate-200 py-8">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-slate-500 text-sm">
                     <div className="mb-4 md:mb-0">
-                        &copy; {new Date().getFullYear()} Tenancy Tracker. All rights reserved.
+                        &copy; {new Date().getFullYear()} Tenancy Tracker. All rights reserved by SAHIL.
                     </div>
                     <div className="flex gap-6">
                         <Link to="/privacy" className="hover:text-blue-600 transition">Privacy Policy</Link>

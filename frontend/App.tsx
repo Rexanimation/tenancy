@@ -1,12 +1,13 @@
-
 import React from 'react';
 import useTenancy from './hooks/useTenancy';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import RenterDashboard from './components/RenterDashboard';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Privacy from './components/Privacy';
 import Terms from './components/Terms';
+import PublicHome from './components/PublicHome';
+
 // Loading component defined above
 const LoadingSpinner: React.FC = () => (
   <div className="min-h-screen bg-slate-100 flex items-center justify-center">
@@ -14,17 +15,13 @@ const LoadingSpinner: React.FC = () => (
   </div>
 );
 
-function MainApp() {
+function DashboardSwitcher() {
   const {
     currentUser,
     tenants,
     records,
-    googleSignIn,
     logout,
     addRecord,
-    loading,
-    error,
-    message,
     approveTenant,
     rejectTenant,
     deleteTenant,
@@ -34,13 +31,7 @@ function MainApp() {
     refreshRecords,
   } = useTenancy();
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!currentUser) {
-    return <LoginScreen onGoogleSignIn={googleSignIn} apiError={error} apiMessage={message} />;
-  }
+  if (!currentUser) return <Navigate to="/login" />;
 
   if (currentUser.status === 'rejected') {
     return (
@@ -109,16 +100,31 @@ function MainApp() {
   return null;
 }
 
+function AppRoutes() {
+  const { currentUser, loading, googleSignIn, error, message } = useTenancy();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<PublicHome user={currentUser} />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/login" element={
+        currentUser ? <Navigate to="/dashboard" /> : <LoginScreen onGoogleSignIn={googleSignIn} apiError={error} apiMessage={message} />
+      } />
+      <Route path="/dashboard" element={<DashboardSwitcher />} />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/" element={<MainApp />} />
-        {/* Support legacy/callback routes if any, or fallback to MainApp handled by logic */}
-        <Route path="*" element={<MainApp />} />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

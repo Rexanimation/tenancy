@@ -14,31 +14,12 @@ export default function useTenancy() {
   const [message, setMessage] = useState<string | null>(null);
 
   // Check for token in URL (from OAuth redirect)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const status = urlParams.get('status');
-    const urlMessage = urlParams.get('message');
 
-    if (token) {
-      localStorage.setItem('token', token);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    if (status === 'pending' && urlMessage) {
-      setMessage(decodeURIComponent(urlMessage));
-    }
-  }, []);
 
   // Fetch current user on mount
   useEffect(() => {
     const fetchCurrentUser = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
+      // Token is now in HTTP-only cookie, just fetch user
       try {
         const user = await authAPI.getMe();
         setCurrentUser(user);

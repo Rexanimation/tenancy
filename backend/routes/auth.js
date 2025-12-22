@@ -22,14 +22,22 @@ router.get(
         // Check if user is approved
         if (req.user.status !== 'approved') {
             // Redirect to frontend with pending status
-            return res.redirect(`${process.env.FRONTEND_URL}?status=pending&message=Your account is pending approval`);
+            return res.redirect(`${process.env.FRONTEND_URL}/login?status=pending&message=Your account is pending approval`);
         }
 
         // Generate JWT token
         const token = generateToken(req.user._id);
 
-        // Redirect to frontend with token
-        res.redirect(`${process.env.FRONTEND_URL}?token=${token}`);
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // true in production
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // none for cross-site (Render backend -> frontend)
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
+        // Redirect to dashboard (frontend will fetch user via /me endpoint using cookie)
+        res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
     }
 );
 

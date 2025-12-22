@@ -7,6 +7,7 @@ import passport from './config/passport.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import cookieParser from 'cookie-parser';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -32,6 +33,7 @@ uploadDirs.forEach(dir => {
 });
 
 // Middleware
+app.use(cookieParser());
 app.use(cors({
     origin: [
         'http://localhost:5173',
@@ -118,19 +120,20 @@ const connectDB = async () => {
 
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
-            console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
-        }
+            if (process.env.FRONTEND_URL) {
+                console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
+            }
             console.log(`🔑 Google Callback URL: ${process.env.GOOGLE_CALLBACK_URL || 'NOT SET (OAuth will fail)'}`);
-    });
+        });
 
-} catch (error) {
-    console.error('❌ MongoDB Connection Error:', error.message);
-    if (error.name === 'MongooseServerSelectionError') {
-        console.error('👉 Check if your IP is whitelisted in MongoDB Atlas (Network Access -> Allow 0.0.0.0/0)');
-        console.error('👉 Check if your username/password in the connection string are correct.');
+    } catch (error) {
+        console.error('❌ MongoDB Connection Error:', error.message);
+        if (error.name === 'MongooseServerSelectionError') {
+            console.error('👉 Check if your IP is whitelisted in MongoDB Atlas (Network Access -> Allow 0.0.0.0/0)');
+            console.error('👉 Check if your username/password in the connection string are correct.');
+        }
+        process.exit(1);
     }
-    process.exit(1);
-}
 };
 
 connectDB();

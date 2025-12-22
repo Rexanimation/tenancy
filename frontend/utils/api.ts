@@ -12,26 +12,29 @@ const api = axios.create({
 });
 
 // Add token to requests
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+// Add token to requests
+// api.interceptors.request.use(
+//     (config) => {
+//         const token = localStorage.getItem('token');
+//         if (token) {
+//             config.headers.Authorization = `Bearer ${token}`;
+//         }
+//         return config;
+//     },
+//     (error) => {
+//         return Promise.reject(error);
+//     }
+// );
 
 // Handle token expiration
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/';
+            // Token expired or invalid
+            if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
@@ -46,7 +49,7 @@ export const authAPI = {
 
     logout: async () => {
         const response = await api.post('/auth/logout');
-        localStorage.removeItem('token');
+        // Cookie handled by backend
         return response.data;
     },
 

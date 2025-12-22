@@ -68,17 +68,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/records', recordRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-    // In Dockerfile, we copy frontend/dist to ../frontend/dist relative to backend
-    const distPath = path.join(__dirname, '../frontend/dist');
-    app.use(express.static(distPath));
-
-    // Handle React routing, return all requests to React app
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
-    });
-}
+// Health check route
+app.get('/', (req, res) => {
+    res.json({ status: 'Backend is running 🚀' });
+});
 
 // Health check
 app.get('/health', (req, res) => {

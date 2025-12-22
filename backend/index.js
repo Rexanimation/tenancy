@@ -33,7 +33,12 @@ uploadDirs.forEach(dir => {
 
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
+        'https://tenancy-frontend.onrender.com', // Replace with your actual frontend URL if different
+        'https://tenancy-1.onrender.com', // Self-reference sometimes needed
+        process.env.FRONTEND_URL
+    ].filter(Boolean),
     credentials: true,
 }));
 

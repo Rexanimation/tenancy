@@ -52,6 +52,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session middleware
 app.use(session({
+    name: 'tenancy.sid',
     secret: process.env.SESSION_SECRET || 'your_session_secret',
     resave: false,
     saveUninitialized: false,

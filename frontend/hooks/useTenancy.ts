@@ -44,10 +44,10 @@ export default function useTenancy() {
         }
       } catch (err: any) {
         console.error('Error fetching user:', err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem('token');
+        // If 401, it just means not logged in. Don't show error to user.
+        if (err.response?.status !== 401) {
+          setError(err.response?.data?.message || 'Failed to load user data');
         }
-        setError(err.response?.data?.message || 'Failed to load user data');
       } finally {
         setLoading(false);
       }

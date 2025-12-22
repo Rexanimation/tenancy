@@ -4,6 +4,7 @@ import useTenancy from './hooks/useTenancy';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import RenterDashboard from './components/RenterDashboard';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Privacy from './components/Privacy';
 import Terms from './components/Terms';
 // Loading component defined above
@@ -13,7 +14,7 @@ const LoadingSpinner: React.FC = () => (
   </div>
 );
 
-export default function App() {
+function MainApp() {
   const {
     currentUser,
     tenants,
@@ -33,15 +34,9 @@ export default function App() {
     refreshRecords,
   } = useTenancy();
 
-  // Simple routing for static pages
-  const path = window.location.pathname;
-  if (path === '/privacy') return <Privacy />;
-  if (path === '/terms') return <Terms />;
-
   if (loading) {
     return <LoadingSpinner />;
   }
-
 
   if (!currentUser) {
     return <LoginScreen onGoogleSignIn={googleSignIn} apiError={error} apiMessage={message} />;
@@ -111,5 +106,19 @@ export default function App() {
     );
   }
 
-  return null; // Should not be reached
+  return null;
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/" element={<MainApp />} />
+        {/* Support legacy/callback routes if any, or fallback to MainApp handled by logic */}
+        <Route path="*" element={<MainApp />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }

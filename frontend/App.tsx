@@ -97,7 +97,15 @@ function DashboardSwitcher() {
     );
   }
 
-  return null;
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+        <h2 className="text-xl font-bold text-slate-800 mb-4">Unknown Role</h2>
+        <p className="text-slate-600 mb-6">Your account has a role ({currentUser.role}) that is not recognized.</p>
+        <button onClick={logout} className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">Sign Out</button>
+      </div>
+    </div>
+  );
 }
 
 function AppRoutes() {

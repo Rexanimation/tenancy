@@ -38,6 +38,12 @@ app.use(cors({
     credentials: true,
 }));
 
+// Fix for Google OAuth "This browser or app may not be secure"
+app.use((req, res, next) => {
+    res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
+    next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

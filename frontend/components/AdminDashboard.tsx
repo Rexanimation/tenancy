@@ -50,7 +50,7 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
     return records.filter((r) => {
       const matchYear = r.year === filterYear;
       const matchMonth = filterMonth === 'All' || r.month === filterMonth;
-      const matchTenant = filterTenant === 'All' || r.tenant._id === filterTenant;
+      const matchTenant = filterTenant === 'All' || r.tenant?._id === filterTenant;
       return matchYear && matchMonth && matchTenant;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [records, filterYear, filterMonth, filterTenant]);
@@ -270,7 +270,7 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
       </tr></thead>
       <tbody className="divide-y divide-slate-100">
         {filteredRecords.length > 0 ? filteredRecords.map((record) => {
-          const fullTenant = tenants?.find(t => t._id === record.tenant._id);
+          const fullTenant = tenants?.find(t => t._id === record.tenant?._id);
           return (
             <tr key={record._id} className="hover:bg-slate-50 transition-colors">
               <td className="px-6 py-4">

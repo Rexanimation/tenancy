@@ -23,6 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Render)
 
 // Ensure upload directories exist
 const uploadDirs = ['uploads/profiles', 'uploads/qr'];
@@ -36,7 +37,7 @@ uploadDirs.forEach(dir => {
 // Middleware
 app.use(cookieParser());
 app.use(cors({
-    origin: 'https://tenancy-frontend.onrender.com',
+    origin: process.env.FRONTEND_URL || 'https://tenancy-frontend.onrender.com',
     credentials: true,
 }));
 
@@ -57,10 +58,10 @@ app.use(session({
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        secure: process.env.NODE_ENV === 'production', // true in production
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        secure: true, // REQUIRED for Render HTTPS
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        sameSite: 'none' // REQUIRED for cross-site
     }
 }));
 

@@ -2,6 +2,7 @@ import express from 'express';
 import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/auth.js';
+import User from '../models/User.js'; // Import User model
 
 const router = express.Router();
 
@@ -41,9 +42,26 @@ router.get(
 );
 
 // @route   GET /auth/me
-// @desc    Get current logged-in user
-router.get('/me', protect, (req, res) => {
-    res.json(req.user);
+// @desc    Get current logged-in user (Silent Auth)
+router.get('/me', async (req, res) => {
+    try {
+        const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+
+        if (!token) {
+            return res.json(null); // Return null instead of 401 to avoid console errors
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select('-__v');
+
+        if (!user) {
+            return res.json(null);
+        }
+
+        res.json(user);
+    } catch (error) {
+        return res.json(null); // Invalid token -> null
+    }
 });
 
 // @route   POST /auth/logout

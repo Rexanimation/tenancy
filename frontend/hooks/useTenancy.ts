@@ -24,6 +24,11 @@ export default function useTenancy() {
         const user = await authAPI.getMe();
         setCurrentUser(user);
 
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
         if (user.status !== 'approved') {
           setMessage('Your account is pending administrator approval.');
           setLoading(false);
@@ -43,13 +48,8 @@ export default function useTenancy() {
           setRecords(recordsData);
         }
       } catch (err: any) {
-        // If 401, it just means not logged in. Silent fail.
-        if (err.response?.status === 401) {
-          setCurrentUser(null);
-        } else {
-          console.error('Error fetching user:', err);
-          setError(err.response?.data?.message || 'Failed to load user data');
-        }
+        console.error('Error fetching user:', err);
+        setError(err.response?.data?.message || 'Failed to load user data');
       } finally {
         setLoading(false);
       }

@@ -8,9 +8,17 @@ const router = express.Router();
 
 // @route   GET /auth/google
 // @desc    Initiate Google OAuth
-router.get('/google', passport.authenticate('google', {
-    scope: ['profile', 'email']
-}));
+// @route   GET /auth/google
+// @desc    Initiate Google OAuth
+router.get('/google', (req, res, next) => {
+    const role = req.query.role || 'renter';
+    const state = JSON.stringify({ role });
+
+    passport.authenticate('google', {
+        scope: ['profile', 'email'],
+        state
+    })(req, res, next);
+});
 
 // @route   GET /auth/google/callback
 // @desc    Google OAuth callback

@@ -51,7 +51,9 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
       const matchYear = r.year === filterYear;
       const matchMonth = filterMonth === 'All' || r.month === filterMonth;
       const matchTenant = filterTenant === 'All' || r.tenant?._id === filterTenant;
-      return matchYear && matchMonth && matchTenant;
+      // Only show records for active tenants
+      const tenantExists = tenants.some(t => t._id === r.tenant?._id);
+      return matchYear && matchMonth && matchTenant && tenantExists;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [records, filterYear, filterMonth, filterTenant]);
 

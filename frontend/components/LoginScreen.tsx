@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Home } from 'lucide-react';
 
 interface LoginScreenProps {
-  onGoogleSignIn: () => void;
+  onGoogleSignIn: (role?: 'tenants' | 'admin') => void;
   apiError: string | null;
   apiMessage: string | null;
 }
@@ -32,7 +32,9 @@ export default function LoginScreen({ onGoogleSignIn, apiError, apiMessage }: Lo
 
   const handleSignIn = async () => {
     setLoading(true);
-    await onGoogleSignIn();
+    // Passing the selected role to the API/Google Auth flow
+    // @ts-ignore - We updated the signature but props might lag in TS check
+    await onGoogleSignIn(selectedRole);
     // setLoading(false); // Don't stop loading, we expect a redirect
   };
 

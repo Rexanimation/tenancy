@@ -13,13 +13,25 @@ passport.use(
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             callbackURL: process.env.GOOGLE_CALLBACK_URL,
+            passReqToCallback: true // Enable access to req in callback
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (req, accessToken, refreshToken, profile, done) => {
             try {
                 const email = profile.emails[0].value;
                 const googleId = profile.id;
                 const name = profile.displayName;
                 const profilePicture = profile.photos[0]?.value || '';
+
+                // Decode state to get requested role
+                let requestedRole = 'renter';
+                try {
+                    if (req.query.state) {
+                        const state = JSON.parse(req.query.state);
+                        requestedRole = state.role || 'renter';
+                    }
+                } catch (e) {
+                    console.error('Error parsing OAuth state:', e);
+                }
 
                 // Check if user exists
                 let user = await User.findOne({ googleId });
@@ -31,23 +43,35 @@ passport.use(
 
                 const isAdmin = adminEmails.includes(email);
 
+                // If user requests admin role but is not in adminEmails list, force renter
+                if (requestedRole === 'admin' && !isAdmin) {
+                    requestedRole = 'renter';
+                }
+
+                // If user is in adminEmails, force admin
+                if (isAdmin) {
+                    requestedRole = 'admin';
+                }
+
                 if (user) {
                     // Update existing user
                     user.name = name;
 
                     // Only update profile picture if user doesn't have a custom uploaded one
-                    // (If profilePicture is empty or starts with Google's URL, use Google's picture)
                     if (!user.profilePicture || user.profilePicture.includes('googleusercontent.com')) {
                         user.profilePicture = profilePicture;
                     }
 
-                    // Update role if they're an admin
+                    // For EXISTING users, we generally DO NOT change their role based on the login toggle
+                    // strictly to avoid security issues or confusion.
+                    // However, if they were rejected, we reset them to pending if they try again?
+                    // Let's stick to: EXISTING roles are persistent.
+
                     if (isAdmin && user.role !== 'admin') {
                         user.role = 'admin';
-                        user.status = 'approved'; // Admins are auto-approved
+                        user.status = 'approved';
                     }
 
-                    // Reset rejected users to pending so admin can re-approve/reject
                     if (user.status === 'rejected') {
                         user.status = 'pending';
                     }
@@ -59,14 +83,14 @@ passport.use(
 
                     await user.save();
                 } else {
-                    // Create new user
+                    // Create new user with REQUESTED role
                     user = await User.create({
                         googleId,
                         email,
                         name,
                         profilePicture,
-                        role: isAdmin ? 'admin' : 'renter',
-                        status: isAdmin ? 'approved' : 'pending', // Admins auto-approved, renters need approval
+                        role: requestedRole,
+                        status: requestedRole === 'admin' ? 'approved' : 'pending',
                     });
                 }
 

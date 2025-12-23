@@ -53,8 +53,8 @@ export const authAPI = {
         return response.data;
     },
 
-    googleSignIn: () => {
-        window.location.href = `${API_BASE_URL}/auth/google`;
+    googleSignIn: (role: 'tenants' | 'admin' = 'tenants') => {
+        window.location.href = `${API_BASE_URL}/auth/google?role=${role}`;
     },
 };
 

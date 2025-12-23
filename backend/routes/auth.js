@@ -11,7 +11,8 @@ const router = express.Router();
 // @route   GET /auth/google
 // @desc    Initiate Google OAuth
 router.get('/google', (req, res, next) => {
-    const role = req.query.role || 'renter';
+    let role = req.query.role || 'renter';
+    if (role === 'tenants') role = 'renter'; // Map frontend label to backend enum
     const state = JSON.stringify({ role });
 
     passport.authenticate('google', {

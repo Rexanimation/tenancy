@@ -130,12 +130,15 @@ export default function useTenancy() {
   const logout = useCallback(async () => {
     try {
       await authAPI.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
       setCurrentUser(null);
       setUsers([]);
       setRecords([]);
       setNotifications([]);
-    } catch (err) {
-      console.error('Logout error:', err);
+      // Force redirect to login page to clear all state
+      window.location.href = '/login';
     }
   }, []);
 

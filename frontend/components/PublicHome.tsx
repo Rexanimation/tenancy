@@ -1,5 +1,5 @@
 
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 interface PublicHomeProps {
     user?: any;

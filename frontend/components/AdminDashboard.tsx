@@ -1,6 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2 } from 'lucide-react';
+import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2, Menu, X } from 'lucide-react';
 import { User, RecordType, NewRecordData, Notification, PaymentSettings } from '../types';
 import AddRecordModal from './AddRecordModal';
 import PaymentConfirmationModal from './PaymentConfirmationModal';
@@ -34,6 +34,7 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<User | null>(null);
@@ -148,7 +149,48 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans">
+    <div className="flex h-screen bg-slate-50 font-sans relative">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="absolute inset-0 z-50 bg-slate-900 bg-opacity-95 md:hidden flex flex-col p-6">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2"><Home className="text-blue-500" /> AdminPortal</h2>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="text-white hover:text-blue-400">
+              <X className="w-8 h-8" />
+            </button>
+          </div>
+          <nav className="flex-1 space-y-4">
+            {['overview', 'records', 'tenants'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl text-lg font-medium transition-colors ${activeTab === tab ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                {tab === 'overview' && <LayoutDashboard className="w-6 h-6" />}
+                {tab === 'records' && <FileText className="w-6 h-6" />}
+                {tab === 'tenants' && <Users className="w-6 h-6" />}
+                <span className="capitalize">{tab}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="pt-8 border-t border-slate-800">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xl">{user?.name?.[0] || 'A'}</div>
+              <div>
+                <p className="text-white font-medium text-lg">{user?.name || 'Admin'}</p>
+                <p className="text-sm text-slate-500">{user?.email}</p>
+              </div>
+            </div>
+            <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 text-slate-300 hover:text-white bg-slate-800 py-4 rounded-xl text-lg font-medium transition-colors">
+              <LogOut className="w-6 h-6" /> Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+
       <aside className="w-64 bg-slate-900 text-slate-300 flex-shrink-0 hidden md:flex flex-col">
         <div className="p-6"><h2 className="text-xl font-bold text-white flex items-center gap-2"><Home className="text-blue-500" /> AdminPortal</h2></div>
         <nav className="flex-1 px-4 space-y-2">
@@ -175,7 +217,12 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-slate-200 p-4 md:p-6 flex justify-between items-center sticky top-0 z-20 shrink-0">
-          <h1 className="text-2xl font-bold text-slate-800 capitalize">{activeTab}</h1>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-600 hover:text-slate-900">
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800 capitalize">{activeTab}</h1>
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSettingsOpen(true)}

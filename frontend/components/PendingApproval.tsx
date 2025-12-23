@@ -27,7 +27,13 @@ export default function PendingApproval() {
                         <p className="text-slate-600 mb-6">Your account is pending administrator approval. Please wait for an admin to approve your registration.</p>
                     </>
                 )}
-                <button onClick={logout} className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">Sign Out</button>
+                <div className="mt-6 border-t pt-6">
+                    <p className="text-sm text-slate-500 mb-2">Logged in as: <span className="font-semibold text-slate-700">{currentUser.email}</span></p>
+                    <p className="text-xs text-slate-400 mb-4">Not an admin? Sign in with a different account.</p>
+                    <button onClick={logout} className="w-full bg-white border border-slate-300 text-slate-700 font-medium px-6 py-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        Sign Out & Try Another Account
+                    </button>
+                </div>
             </div>
         </div>
     );

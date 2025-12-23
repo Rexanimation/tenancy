@@ -6,9 +6,10 @@ interface PublicHomeProps {
 }
 
 export default function PublicHome({ user }: PublicHomeProps) {
-    if (user) {
-        return <Navigate to="/dashboard" replace />;
-    }
+    // Auto-redirect removed per user request
+    // if (user) {
+    //     return <Navigate to="/dashboard" replace />;
+    // }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col">

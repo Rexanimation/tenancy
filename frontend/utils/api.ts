@@ -54,7 +54,7 @@ export const authAPI = {
     },
 
     googleSignIn: (role: 'tenants' | 'admin' = 'tenants') => {
-        window.location.href = `${API_BASE_URL}/auth/google?role=${role}`;
+        window.location.href = `${API_BASE_URL}/auth/google?role=${role}&prompt=select_account`;
     },
 };
 

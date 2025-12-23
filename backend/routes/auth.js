@@ -35,6 +35,7 @@ router.get(
             secure: true,
             sameSite: 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/'
         });
 
         res.redirect(`${process.env.FRONTEND_URL}/dashboard`);

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import useTenancy from '../hooks/useTenancy';
 
 export default function PendingApproval() {

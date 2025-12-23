@@ -1,9 +1,8 @@
-import React from 'react';
 import { Navigate } from 'react-router-dom';
 import useTenancy from '../hooks/useTenancy';
 
 interface ProtectedRouteProps {
-    children: React.ReactElement;
+    children: JSX.Element;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {

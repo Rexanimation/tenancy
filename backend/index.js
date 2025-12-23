@@ -36,12 +36,7 @@ uploadDirs.forEach(dir => {
 // Middleware
 app.use(cookieParser());
 app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'https://tenancy-frontend.onrender.com',
-        'https://tenancy-backend-2511.onrender.com',
-        process.env.FRONTEND_URL
-    ].filter(Boolean),
+    origin: 'https://tenancy-frontend.onrender.com',
     credentials: true,
 }));
 

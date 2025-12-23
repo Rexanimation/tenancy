@@ -25,20 +25,15 @@ export default function PublicHome({ user }: PublicHomeProps) {
                     </div>
                     <div>
                         {user ? (
-                            <div className="flex items-center gap-4">
-                                <Link to="/dashboard" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                                    Go to Dashboard
-                                </Link>
-                                <button
-                                    onClick={() => {
-                                        localStorage.removeItem('token');
-                                        window.location.reload();
-                                    }}
-                                    className="text-slate-500 hover:text-slate-800 font-medium transition"
-                                >
-                                    Sign Out
-                                </button>
-                            </div>
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('token');
+                                    window.location.href = '/login';
+                                }}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                            >
+                                Go to Login Page
+                            </button>
                         ) : (
                             <Link to="/login" className="text-blue-600 font-medium hover:text-blue-800 transition">
                                 Sign In

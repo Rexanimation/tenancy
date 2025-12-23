@@ -92,7 +92,7 @@ export default function useTenancy() {
             createdAt: new Date().toISOString(),
           });
         }
-        if (currentUser?._id === record.tenant._id) {
+        if (currentUser?._id === record.tenant?._id) {
           newNotifications.push({
             id: `notif_renter_overdue_${record._id}`,
             userId: currentUser._id,
@@ -102,7 +102,7 @@ export default function useTenancy() {
             createdAt: new Date().toISOString(),
           });
         }
-      } else if (dayDiff <= 7 && currentUser?._id === record.tenant._id) {
+      } else if (dayDiff <= 7 && currentUser?._id === record.tenant?._id) {
         newNotifications.push({
           id: `notif_renter_due_${record._id}`,
           userId: currentUser._id,
@@ -149,7 +149,7 @@ export default function useTenancy() {
       // Remove any existing unpaid records for the same tenant/month/year (they were deleted on backend)
       setRecords(prev => {
         const filtered = prev.filter(r =>
-          !(r.tenant._id === recordData.tenantId &&
+          !(r.tenant?._id === recordData.tenantId &&
             r.month === recordData.month &&
             r.year === recordData.year &&
             !r.paid)
@@ -201,7 +201,7 @@ export default function useTenancy() {
       // Remove tenant from users list
       setUsers(prev => prev.filter(u => u._id !== tenantId));
       // Remove all records for this tenant
-      setRecords(prev => prev.filter(r => r.tenant._id !== tenantId));
+      setRecords(prev => prev.filter(r => r.tenant?._id !== tenantId));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete tenant');
     }

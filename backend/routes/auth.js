@@ -1,6 +1,7 @@
 import express from 'express';
 import passport from '../config/passport.js';
-import { generateToken } from '../middleware/auth.js';
+import jwt from 'jsonwebtoken';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -14,63 +15,45 @@ router.get('/google', passport.authenticate('google', {
 // @desc    Google OAuth callback
 router.get(
     '/google/callback',
-    passport.authenticate('google', {
-        failureRedirect: `${process.env.FRONTEND_URL}/login`,
-        session: false
-    }),
+    passport.authenticate('google', { session: false }),
     (req, res) => {
-        // Check if user is approved
-        if (req.user.status !== 'approved') {
-            // Redirect to frontend with pending status
-            return res.redirect(`${process.env.FRONTEND_URL}/login?status=pending&message=Your account is pending approval`);
-        }
+        const user = req.user;
 
-        // Generate JWT token
-        const token = generateToken(req.user._id);
+        const token = jwt.sign(
+            {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
 
-        // Set token in HTTP-only cookie
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // true in production
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // none for cross-site (Render backend -> frontend)
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            secure: true,
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        // Redirect to dashboard (frontend will fetch user via /me endpoint using cookie)
-        res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
+        res.redirect("https://tenancy-frontend.onrender.com");
     }
 );
 
 // @route   GET /auth/me
 // @desc    Get current logged-in user
-router.get('/me', async (req, res) => {
-    try {
-        // Extract token from header
-        const token = req.headers.authorization?.split(' ')[1];
-
-        if (!token) {
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-
-        const jwt = await import('jsonwebtoken');
-        const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
-
-        const User = (await import('../models/User.js')).default;
-        const user = await User.findById(decoded.id).select('-__v');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.json(user);
-    } catch (error) {
-        res.status(401).json({ message: 'Not authorized' });
-    }
+router.get('/me', protect, (req, res) => {
+    res.json(req.user);
 });
 
 // @route   POST /auth/logout
-// @desc    Logout user (client-side token removal)
+// @desc    Logout user
 router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    });
     res.json({ message: 'Logged out successfully' });
 });
 

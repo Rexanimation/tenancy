@@ -2,13 +2,11 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import session from 'express-session';
 import passport from './config/passport.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
-import MongoStore from 'connect-mongo';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -33,7 +31,6 @@ uploadDirs.forEach(dir => {
         fs.mkdirSync(fullPath, { recursive: true });
     }
 });
-
 // Middleware
 app.use(cookieParser());
 app.use(cors({
@@ -44,30 +41,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-
-
-// Session middleware
-app.use(session({
-    name: 'tenancy.sid',
-    secret: process.env.SESSION_SECRET || 'your_session_secret',
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions',
-        ttl: 24 * 60 * 60 // 1 day
-    }),
-    cookie: {
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        secure: true, // REQUIRED for Render HTTPS
-        httpOnly: true,
-        sameSite: 'none' // REQUIRED for cross-site
-    }
-}));
-
 // Passport middleware
 app.use(passport.initialize());
-app.use(passport.session());
+
+// Serve static files (uploaded images)
 
 // Serve static files (uploaded images)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

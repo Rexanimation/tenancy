@@ -78,17 +78,7 @@ passport.use(
     )
 );
 
-passport.serializeUser((user, done) => {
-    done(null, user._id);
-});
-
-passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await User.findById(id);
-        done(null, user);
-    } catch (error) {
-        done(error, null);
-    }
-});
+// No serialization needed for JWT-only flow
+// passport.serializeUser / deserializeUser removed
 
 export default passport;

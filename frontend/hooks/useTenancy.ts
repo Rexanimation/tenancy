@@ -43,9 +43,11 @@ export default function useTenancy() {
           setRecords(recordsData);
         }
       } catch (err: any) {
-        console.error('Error fetching user:', err);
-        // If 401, it just means not logged in. Don't show error to user.
-        if (err.response?.status !== 401) {
+        // If 401, it just means not logged in. Silent fail.
+        if (err.response?.status === 401) {
+          setCurrentUser(null);
+        } else {
+          console.error('Error fetching user:', err);
           setError(err.response?.data?.message || 'Failed to load user data');
         }
       } finally {

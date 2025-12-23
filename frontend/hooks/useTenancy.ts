@@ -133,6 +133,7 @@ export default function useTenancy() {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      localStorage.removeItem('token'); // Clear token
       setCurrentUser(null);
       setUsers([]);
       setRecords([]);

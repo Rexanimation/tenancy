@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Home } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -20,10 +20,20 @@ export default function LoginScreen({ onGoogleSignIn, apiError, apiMessage }: Lo
   const [selectedRole, setSelectedRole] = useState<'tenants' | 'admin'>('tenants');
   const [loading, setLoading] = useState(false);
 
+  // Check for token in URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('token', token);
+      window.location.href = '/dashboard'; // Hard redirect to clear URL params and init dashboard
+    }
+  }, []);
+
   const handleSignIn = async () => {
     setLoading(true);
     await onGoogleSignIn();
-    setLoading(false);
+    // setLoading(false); // Don't stop loading, we expect a redirect
   };
 
   return (

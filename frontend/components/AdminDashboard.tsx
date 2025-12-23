@@ -282,9 +282,7 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
                     <div className="text-xs text-slate-500">Unit {record.tenant?.unit}</div>
                   </button>
                 ) : (
-                ) : (
                   <div className="text-slate-400 italic">Unknown Tenant</div>
-                )}
                 )}
               </td>
               <td className="px-6 py-4"><span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-medium">{record.month} {record.year}</span></td>
@@ -304,9 +302,9 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
                   <button onClick={() => onMarkAsPaid(record)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold px-3 py-1 rounded-full transition-colors">Mark as Paid</button>}
               </td>
             </tr>
-      );
+          );
         }) : <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>}
-    </tbody>
+      </tbody>
     </table></div>
   </div >
 );

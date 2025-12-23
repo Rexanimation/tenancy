@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || [];
+const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim().toLowerCase()) || [];
 
 passport.use(
     new GoogleStrategy(
@@ -41,7 +41,7 @@ passport.use(
                     user = await User.findOne({ email });
                 }
 
-                const isAdmin = adminEmails.includes(email);
+                const isAdmin = adminEmails.includes(email.toLowerCase());
 
                 // If user requests admin role but is not in adminEmails list, force renter
                 if (requestedRole === 'admin' && !isAdmin) {

@@ -60,7 +60,9 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
     return records.filter((r) => {
       const matchYear = r.year === revenueYear;
       const matchMonth = revenueMonth === 'All' || r.month === revenueMonth;
-      return matchYear && matchMonth && r.paid;
+      // Only count revenue from active tenants to avoid phantom numbers
+      const tenantExists = tenants.some(t => t._id === r.tenant?._id);
+      return matchYear && matchMonth && r.paid && tenantExists;
     });
   }, [records, revenueYear, revenueMonth]);
 
@@ -280,7 +282,9 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
                     <div className="text-xs text-slate-500">Unit {record.tenant?.unit}</div>
                   </button>
                 ) : (
-                  <><div className="font-medium text-slate-900">{record.tenant?.name}</div><div className="text-xs text-slate-500">Unit {record.tenant?.unit}</div></>
+                ) : (
+                  <div className="text-slate-400 italic">Unknown Tenant</div>
+                )}
                 )}
               </td>
               <td className="px-6 py-4"><span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-medium">{record.month} {record.year}</span></td>
@@ -300,11 +304,11 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
                   <button onClick={() => onMarkAsPaid(record)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold px-3 py-1 rounded-full transition-colors">Mark as Paid</button>}
               </td>
             </tr>
-          );
+      );
         }) : <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>}
-      </tbody>
+    </tbody>
     </table></div>
-  </div>
+  </div >
 );
 
 const TenantsTable = ({ tenants, onApprove, onReject, onDelete, onTenantClick }: { tenants: User[], onApprove: (id: string) => void, onReject: (id: string) => void, onDelete: (id: string) => void, onTenantClick: (tenant: User) => void }) => (
@@ -321,7 +325,13 @@ const TenantsTable = ({ tenants, onApprove, onReject, onDelete, onTenantClick }:
                 <button onClick={() => onTenantClick(tenant)} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
                   {tenant.name}
                 </button>
-              ) : tenant.name}
+              ) : (
+                // Allow clicking pending/rejected tenants to manage their billing/records too if needed?
+                // For now, let's keep it consistent: click name -> billing page
+                <button onClick={() => onTenantClick(tenant)} className="text-slate-900 hover:text-blue-600 hover:underline font-medium">
+                  {tenant.name}
+                </button>
+              )}
             </td>
             <td className="px-6 py-4"><div className="text-slate-600">{tenant.email}</div><div className="text-xs text-slate-500">Unit {tenant.unit}</div></td>
             <td className="px-6 py-4 font-semibold text-slate-800">{formatINR(tenant.rentAmount || 0)}</td>

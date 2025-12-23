@@ -1,11 +1,15 @@
 
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 
 interface PublicHomeProps {
     user?: any;
 }
 
 export default function PublicHome({ user }: PublicHomeProps) {
+    if (user) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col">
             <nav className="bg-white shadow-sm p-4">

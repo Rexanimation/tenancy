@@ -6,11 +6,7 @@ import { authAPI } from '../utils/api';
 export default function PendingApproval() {
     const { currentUser, logout } = useTenancy();
 
-    if (!currentUser) return null;
-
-    const isRejected = currentUser.status === 'rejected';
-
-    // Poll for status chnage
+    // Poll for status change - Hooks must run before conditional returns
     useEffect(() => {
         if (!currentUser || isRejected) return;
 
@@ -31,9 +27,11 @@ export default function PendingApproval() {
         return () => clearInterval(interval);
     }, [currentUser, isRejected]);
 
+    if (!currentUser) return null;
+
     return (
         <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+            <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-md w-full text-center">
                 {isRejected ? (
                     <>
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -41,7 +39,7 @@ export default function PendingApproval() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Account Rejected</h2>
+                        <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Account Rejected</h2>
                         <p className="text-slate-600 mb-6">Your registration request has been rejected by the administrator. If you believe this is a mistake, please contact the admin.</p>
                     </>
                 ) : (
@@ -51,7 +49,7 @@ export default function PendingApproval() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Waiting for Approval</h2>
+                        <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Waiting for Approval</h2>
                         <p className="text-slate-600 mb-6">Your account is waiting for administrator approval. This page will automatically refresh once you are approved.</p>
                     </>
                 )}

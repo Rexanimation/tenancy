@@ -30,7 +30,7 @@ export default function useTenancy() {
         }
 
         if (user.status !== 'approved') {
-          setMessage('Your account is pending administrator approval.');
+          setMessage('Waiting for Approval');
           setLoading(false);
           return;
         }

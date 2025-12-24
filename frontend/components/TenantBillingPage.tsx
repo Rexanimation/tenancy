@@ -3,6 +3,7 @@ import { ArrowLeft, User as UserIcon, Home, Zap, Building, Car, AlertTriangle, I
 import { User, NewRecordData } from '../types';
 import { formatINR, formatINRWithDecimals } from '../utils/currency';
 import { userAPI } from '../utils/api';
+import { getProfileImageUrl } from '../utils/images';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -154,9 +155,11 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
                 {/* Tenant Header Card */}
                 <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl p-6 text-white shadow-lg">
                     <div className="flex items-center gap-4">
+
+
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                             {tenant.profilePicture ? (
-                                <img src={tenant.profilePicture} alt={tenant.name} className="w-16 h-16 rounded-full object-cover" />
+                                <img src={getProfileImageUrl(tenant.profilePicture)} alt={tenant.name} className="w-16 h-16 rounded-full object-cover" />
                             ) : (
                                 <UserIcon className="w-8 h-8" />
                             )}

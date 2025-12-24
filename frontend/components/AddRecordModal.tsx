@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { XCircle } from 'lucide-react';
 import { User, NewRecordData } from '../types';
+import { getProfileImageUrl } from '../utils/images';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 3 }, (_, i) => (2020 + i).toString());
@@ -134,7 +135,7 @@ export default function AddRecordModal({ isOpen, onClose, onAddRecord, tenants, 
             <div className="flex flex-col items-center justify-center pt-6">
               {selectedTenantProfile?.profilePicture ? (
                 <img
-                  src={selectedTenantProfile.profilePicture}
+                  src={getProfileImageUrl(selectedTenantProfile.profilePicture)}
                   alt="Profile"
                   className="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
                 />

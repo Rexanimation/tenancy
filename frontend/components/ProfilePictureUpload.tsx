@@ -97,15 +97,27 @@ export default function ProfilePictureUpload({
             <div className="mb-6 text-center">
                 <div className="relative inline-block">
                     {preview || currentPicture ? (
+import {getProfileImageUrl} from '../utils/images';
+
+                    // ... imports
+
+                    export default function ProfilePictureUpload({
+                        currentPicture,
+                        onUploadSuccess,
+                        onClose,
+}: ProfilePictureUploadProps) {
+                        // ... code
+
+                        // ... inside render
                         <img
-                            src={preview || currentPicture}
+                            src={preview || getProfileImageUrl(currentPicture)}
                             alt="Profile"
                             className="w-32 h-32 rounded-full object-cover border-4 border-slate-200"
                         />
                     ) : (
-                        <div className="w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center border-4 border-slate-300">
-                            <User className="w-16 h-16 text-slate-400" />
-                        </div>
+                    <div className="w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center border-4 border-slate-300">
+                        <User className="w-16 h-16 text-slate-400" />
+                    </div>
                     )}
                     {preview && (
                         <button

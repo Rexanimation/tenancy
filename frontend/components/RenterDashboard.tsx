@@ -44,8 +44,12 @@ export default function RenterDashboard({ user, records, onLogout, notifications
           <div className="flex items-center gap-3">
             {/* Profile Picture or Upload Button */}
             <button onClick={() => setIsPhotoModalOpen(true)} className="relative group">
+              import {getProfileImageUrl} from '../utils/images';
+
+              // ...
+
               {user.profilePicture ? (
-                <img src={user.profilePicture} alt={user.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-200 group-hover:border-indigo-400 transition-colors" />
+                <img src={getProfileImageUrl(user.profilePicture)} alt={user.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-200 group-hover:border-indigo-400 transition-colors" />
               ) : (
                 <div className="bg-indigo-100 p-2 rounded-full group-hover:bg-indigo-200 transition-colors">
                   <Home className="text-indigo-600 w-6 h-6" />

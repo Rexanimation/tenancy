@@ -38,6 +38,14 @@ export default function RenterDashboard({ user, records, onLogout, notifications
     setIsPhotoModalOpen(false);
   };
 
+  // Auto-open upload modal if picture is missing (onboarding)
+  import { useEffect as useEffectReact } from 'react';
+  useEffectReact(() => {
+    if (!user.profilePicture) {
+      setIsPhotoModalOpen(true);
+    }
+  }, [user.profilePicture]);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-20">

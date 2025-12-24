@@ -15,8 +15,8 @@ export default function PendingApproval() {
             try {
                 const response = await authAPI.getMe();
                 if (response && response.status === 'approved') {
-                    // Status changed! Reload to let App/ProtectedRoute handle redirection
-                    window.location.reload();
+                    // Status changed! Redirect to dashboard immediately
+                    window.location.href = '/dashboard';
                 }
             } catch (error) {
                 // Ignore errors during polling
@@ -24,7 +24,7 @@ export default function PendingApproval() {
             }
         };
 
-        const interval = setInterval(checkStatus, 3000); // Check every 3 seconds for faster response
+        const interval = setInterval(checkStatus, 2000); // Check every 2 seconds for faster response
         return () => clearInterval(interval);
     }, [currentUser, isRejected]);
 

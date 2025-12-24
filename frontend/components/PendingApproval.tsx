@@ -5,6 +5,7 @@ import { authAPI } from '../utils/api';
 
 export default function PendingApproval() {
     const { currentUser, logout } = useTenancy();
+    const isRejected = currentUser?.status === 'rejected';
 
     // Poll for status change - Hooks must run before conditional returns
     useEffect(() => {

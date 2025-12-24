@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera } from 'lucide-react';
 import { User, RecordType, Notification } from '../types';
 import NotificationsPanel from './NotificationsPanel';

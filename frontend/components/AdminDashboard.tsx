@@ -43,6 +43,23 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
   const [filterMonth, setFilterMonth] = useState('All');
   const [filterTenant, setFilterTenant] = useState('All');
 
+  const [showRoleAlert, setShowRoleAlert] = useState(false);
+
+  useEffect(() => {
+    const loginIntent = localStorage.getItem('login_intent_role');
+    if (loginIntent === 'tenants') {
+      setShowRoleAlert(true);
+      // Clear it so it doesn't show again on refresh
+      localStorage.removeItem('login_intent_role');
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => setShowRoleAlert(false), 5000);
+    } else {
+      // Clear it anyway
+      localStorage.removeItem('login_intent_role');
+    }
+  }, []);
+
   // Separate revenue filters
   const [revenueYear, setRevenueYear] = useState(new Date().getFullYear().toString());
   const [revenueMonth, setRevenueMonth] = useState('All');
@@ -242,6 +259,20 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+          {showRoleAlert && (
+            <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded shadow-md relative animate-bounce" role="alert">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-bold">Admin Access Detected</p>
+                  <p>You are an admin user. We have switched you to the Admin Panel automatically.</p>
+                </div>
+                <button onClick={() => setShowRoleAlert(false)} className="text-blue-500 hover:text-blue-800">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Enhanced Revenue Card with Filters */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">

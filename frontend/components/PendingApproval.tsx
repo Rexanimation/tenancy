@@ -1,5 +1,7 @@
 
+import { useEffect } from 'react';
 import useTenancy from '../hooks/useTenancy';
+import { authAPI } from '../utils/api';
 
 export default function PendingApproval() {
     const { currentUser, logout } = useTenancy();
@@ -7,6 +9,27 @@ export default function PendingApproval() {
     if (!currentUser) return null;
 
     const isRejected = currentUser.status === 'rejected';
+
+    // Poll for status chnage
+    useEffect(() => {
+        if (!currentUser || isRejected) return;
+
+        const checkStatus = async () => {
+            try {
+                const response = await authAPI.getMe();
+                if (response && response.status === 'approved') {
+                    // Status changed! Reload to let App/ProtectedRoute handle redirection
+                    window.location.reload();
+                }
+            } catch (error) {
+                // Ignore errors during polling
+                console.log("Polling error", error);
+            }
+        };
+
+        const interval = setInterval(checkStatus, 5000); // Check every 5 seconds
+        return () => clearInterval(interval);
+    }, [currentUser, isRejected]);
 
     return (
         <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">

@@ -32,6 +32,7 @@ export default function LoginScreen({ onGoogleSignIn, apiError, apiMessage }: Lo
 
   const handleSignIn = async () => {
     setLoading(true);
+    localStorage.setItem('login_intent_role', selectedRole);
     // Passing the selected role to the API/Google Auth flow
     // @ts-ignore - We updated the signature but props might lag in TS check
     await onGoogleSignIn(selectedRole);

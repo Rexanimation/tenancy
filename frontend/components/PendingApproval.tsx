@@ -27,7 +27,7 @@ export default function PendingApproval() {
             }
         };
 
-        const interval = setInterval(checkStatus, 5000); // Check every 5 seconds
+        const interval = setInterval(checkStatus, 3000); // Check every 3 seconds for faster response
         return () => clearInterval(interval);
     }, [currentUser, isRejected]);
 
@@ -46,8 +46,13 @@ export default function PendingApproval() {
                     </>
                 ) : (
                     <>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Account Pending Approval</h2>
-                        <p className="text-slate-600 mb-6">Your account is pending administrator approval. Please wait for an admin to approve your registration.</p>
+                        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Waiting for Approval</h2>
+                        <p className="text-slate-600 mb-6">Your account is waiting for administrator approval. This page will automatically refresh once you are approved.</p>
                     </>
                 )}
                 <div className="mt-6 border-t pt-6">

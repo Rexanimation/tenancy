@@ -86,7 +86,7 @@ export default function useTenancy() {
           newNotifications.push({
             id: `notif_admin_overdue_${record._id}`,
             userId: currentUser._id,
-            message: `${record.tenant.name}'s ${record.month} rent is overdue.`,
+            message: `${record.tenant?.name || 'Unknown'}'s ${record.month} rent is overdue.`,
             type: 'warning',
             read: false,
             createdAt: new Date().toISOString(),

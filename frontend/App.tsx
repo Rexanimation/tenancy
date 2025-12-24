@@ -57,7 +57,7 @@ function DashboardSwitcher() {
   }
 
   if (currentUser.role === 'renter') {
-    const renterRecords = records.filter(r => r.tenant?._id === currentUser._id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const renterRecords = (records || []).filter(r => r && r.tenant?._id === currentUser._id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return (
       <RenterDashboard
         user={currentUser}

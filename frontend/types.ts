@@ -43,12 +43,19 @@ export interface RecordType {
 }
 
 export interface NewRecordData {
+  _id?: string;
   tenantId: string;
   month: string;
   year: string;
   rent: number;
   electricity: number;
+  electricityUnits?: number;
+  electricityRate?: number;
+  municipalFee?: number;
   parking: number;
+  penalties?: number;
+  dues?: number;
+  advanceCredit?: number;
   paid: boolean;
 }
 

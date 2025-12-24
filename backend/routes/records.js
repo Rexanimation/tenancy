@@ -139,6 +139,63 @@ router.post('/', protect, adminOnly, async (req, res) => {
     }
 });
 
+// @route   PUT /api/records/:id
+// @desc    Update a specific record
+// @access  Private (Admin)
+router.put('/:id', protect, adminOnly, async (req, res) => {
+    try {
+        const { rent, electricity, electricityUnits, electricityRate, municipalFee, parking, penalties, dues, advanceCredit, paid, month, year } = req.body;
+
+        const record = await Record.findById(req.params.id);
+
+        if (!record) {
+            return res.status(404).json({ message: 'Record not found' });
+        }
+
+        // Optional: Check conflicts if month/year changed? 
+        // For now, let's assume admin knows what they are doing or we can rely on unique compound index if it existed (it doesn't seem to enforce uniqueness at db level yet strictly aside from logic).
+        // Let's just update fields.
+
+        if (month) record.month = month;
+        if (year) record.year = year;
+        if (rent !== undefined) record.rent = Number(rent);
+        if (electricity !== undefined) record.electricity = Number(electricity);
+        if (electricityUnits !== undefined) record.electricityUnits = Number(electricityUnits);
+        if (electricityRate !== undefined) record.electricityRate = Number(electricityRate);
+        if (municipalFee !== undefined) record.municipalFee = Number(municipalFee);
+        if (parking !== undefined) record.parking = Number(parking);
+        if (penalties !== undefined) record.penalties = Number(penalties);
+        if (dues !== undefined) record.dues = Number(dues);
+        if (advanceCredit !== undefined) record.advanceCredit = Number(advanceCredit);
+
+        // Update date if month/year changed
+        if (month || year) {
+            const newMonth = month || record.month;
+            const newYear = year || record.year;
+            record.date = `${newYear}-${String(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].indexOf(newMonth) + 1).padStart(2, '0')}-01`;
+        }
+
+        if (paid !== undefined) {
+            record.paid = paid;
+            if (paid && !record.paidDate) {
+                record.paidDate = new Date();
+            } else if (!paid) {
+                record.paidDate = undefined;
+                record.transactionId = undefined;
+                record.paymentMethod = undefined;
+            }
+        }
+
+        await record.save();
+
+        const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
+        res.json(populatedRecord);
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // @route   PATCH /api/records/:id/status
 // @desc    Update payment status
 // @access  Private (Admin)

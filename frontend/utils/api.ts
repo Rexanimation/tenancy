@@ -119,6 +119,11 @@ export const recordAPI = {
         return response.data;
     },
 
+    updateRecord: async (recordId: string, data: any) => {
+        const response = await api.put(`/api/records/${recordId}`, data);
+        return response.data;
+    },
+
     deleteRecord: async (recordId: string) => {
         const response = await api.delete(`/api/records/${recordId}`);
         return response.data;

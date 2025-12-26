@@ -43,7 +43,13 @@ api.interceptors.response.use(
 // Auth APIs
 export const authAPI = {
     getMe: async () => {
-        const response = await api.get('/auth/me');
+        const response = await api.get('/auth/me', {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            }
+        });
         return response.data;
     },
 

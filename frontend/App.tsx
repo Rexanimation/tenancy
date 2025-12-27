@@ -28,6 +28,7 @@ function DashboardSwitcher() {
     rejectTenant,
     deleteTenant,
     updateRecordStatus,
+    updateRecord, // Extract new function
     updateTenants,
     notifications,
     refreshRecords,
@@ -49,6 +50,7 @@ function DashboardSwitcher() {
         rejectTenant={rejectTenant}
         deleteTenant={deleteTenant}
         updateRecordStatus={updateRecordStatus}
+        updateRecord={updateRecord} // Pass new function
         updateTenants={updateTenants}
         notifications={notifications}
         refreshRecords={refreshRecords}

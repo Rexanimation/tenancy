@@ -146,6 +146,11 @@ export default function useTenancy() {
   const addRecord = useCallback(async (recordData: NewRecordData): Promise<RecordType | null> => {
     try {
       const newRecord = await recordAPI.createRecord(recordData);
+
+      // HYDRATION: Ensure tenant object is attached for UI display
+      const tenant = users.find(u => u._id === recordData.tenantId);
+      const hydratedRecord = tenant ? { ...newRecord, tenant } : newRecord;
+
       // Remove any existing unpaid records for the same tenant/month/year (they were deleted on backend)
       setRecords(prev => {
         const filtered = prev.filter(r =>
@@ -154,14 +159,14 @@ export default function useTenancy() {
             r.year === recordData.year &&
             !r.paid)
         );
-        return [newRecord, ...filtered];
+        return [hydratedRecord, ...filtered];
       });
-      return newRecord;
+      return hydratedRecord;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create record');
       return null;
     }
-  }, []);
+  }, [users]); // Added users dependency for hydration
 
   const approveTenant = useCallback(async (tenantId: string) => {
     try {
@@ -187,7 +192,38 @@ export default function useTenancy() {
         paid,
         paymentMethod: paid ? 'upi' : '',
       });
-      setRecords(prev => prev.map(r => r._id === recordId ? updatedRecord : r));
+
+      setRecords(prev => prev.map(r => {
+        if (r._id === recordId) {
+          // HYDRATION: Preserve existing tenant info if backend didn't return it populated
+          if ((!updatedRecord.tenant || typeof updatedRecord.tenant === 'string') && r.tenant) {
+            return { ...updatedRecord, tenant: r.tenant };
+          }
+          return updatedRecord;
+        }
+        return r;
+      }));
+      return updatedRecord;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update record');
+      return null;
+    }
+  }, []);
+
+  const updateRecord = useCallback(async (recordId: string, data: any): Promise<RecordType | null> => {
+    try {
+      const updatedRecord = await recordAPI.updateRecord(recordId, data);
+
+      setRecords(prev => prev.map(r => {
+        if (r._id === recordId) {
+          // HYDRATION: Preserve existing tenant info if backend didn't return it populated
+          if ((!updatedRecord.tenant || typeof updatedRecord.tenant === 'string') && r.tenant) {
+            return { ...updatedRecord, tenant: r.tenant };
+          }
+          return updatedRecord;
+        }
+        return r;
+      }));
       return updatedRecord;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update record');
@@ -249,6 +285,7 @@ export default function useTenancy() {
     rejectTenant,
     deleteTenant,
     updateRecordStatus,
+    updateRecord,
     updateTenants,
     notifications,
     refreshRecords,

@@ -11,10 +11,11 @@ interface TenantBillingPageProps {
     tenant: User;
     onBack: () => void;
     onAddRecord: (record: NewRecordData) => Promise<any>;
+    onUpdateRecord: (recordId: string, data: any) => Promise<any>;
     onUpdateTenant: (tenant: User) => void;
 }
 
-export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdateTenant }: TenantBillingPageProps) {
+export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdateRecord, onUpdateTenant }: TenantBillingPageProps) {
     const [isEditingSettings, setIsEditingSettings] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isCreatingBill, setIsCreatingBill] = useState(false);

@@ -23,12 +23,13 @@ interface AdminDashboardProps {
   rejectTenant: (tenantId: string) => Promise<void>;
   deleteTenant: (tenantId: string) => Promise<void>;
   updateRecordStatus: (recordId: string, paid: boolean) => Promise<RecordType | null>;
+  updateRecord: (recordId: string, data: any) => Promise<RecordType | null>;
   updateTenants: (tenants: User[]) => void;
   notifications: Notification[];
   refreshRecords: () => Promise<void>;
 }
 
-export default function AdminDashboard({ user, tenants, records, onAddRecord, onLogout, approveTenant, rejectTenant, deleteTenant, updateRecordStatus, updateTenants, notifications, refreshRecords }: AdminDashboardProps) {
+export default function AdminDashboard({ user, tenants, records, onAddRecord, onLogout, approveTenant, rejectTenant, deleteTenant, updateRecordStatus, updateRecord, updateTenants, notifications, refreshRecords }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -160,6 +161,7 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
         tenant={selectedTenant}
         onBack={() => setSelectedTenant(null)}
         onAddRecord={onAddRecord}
+        onUpdateRecord={updateRecord}
         onUpdateTenant={handleUpdateTenant}
       />
     );

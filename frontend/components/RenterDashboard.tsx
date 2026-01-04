@@ -203,8 +203,19 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                   <div className="flex justify-between text-sm"><span className="text-orange-600 flex items-center gap-2">₹ Dues</span><span className="font-semibold text-orange-600">{formatINR(latestRecord.dues || 0)}</span></div>
                 )}
                 <div className="border-t pt-3 mt-2 flex justify-between font-bold text-slate-800">
-                  <span>Total</span>
-                  <span>{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span>
+                  <span>{latestRecord.paid ? 'Paid Amount' : 'Total'}</span>
+                  <div className="text-right">
+                    {latestRecord.paid ? (
+                      <>
+                        <span>{formatINR(latestRecord.paidAmount || (latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0)))}</span>
+                        {(latestRecord.paidAmount !== undefined && latestRecord.paidAmount < (latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))) && (
+                          <p className="text-xs text-slate-400 font-normal">Bill: <span className="line-through">{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span></p>
+                        )}
+                      </>
+                    ) : (
+                      <span>{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

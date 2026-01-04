@@ -36,6 +36,7 @@ export interface RecordType {
   dues?: number;
   advanceCredit?: number;
   paid: boolean;
+  paidAmount?: number;
   date: string; // 'YYYY-MM-DD'
   paidDate?: Date;
   transactionId?: string;

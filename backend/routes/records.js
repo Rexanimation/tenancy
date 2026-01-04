@@ -93,9 +93,15 @@ router.post('/', protect, adminOnly, async (req, res) => {
             existingRecord.dues = Number(dues) || 0;
             existingRecord.advanceCredit = Number(advanceCredit) || 0;
             existingRecord.date = date;
-            // Don't change paid status if already paid
-            if (!existingRecord.paid) {
-                existingRecord.paid = paid || false;
+            // Update paid status (even if it was previously paid)
+            if (paid !== undefined) {
+                existingRecord.paid = paid;
+                // If marking as unpaid, clear payment details
+                if (!paid) {
+                    existingRecord.paidDate = undefined;
+                    existingRecord.transactionId = undefined;
+                    existingRecord.paymentMethod = undefined;
+                }
             }
             await existingRecord.save();
             record = existingRecord;

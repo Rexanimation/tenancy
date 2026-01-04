@@ -147,7 +147,7 @@ router.post('/razorpay/order', protect, approvedOnly, async (req, res) => {
         const transaction = await Transaction.create({
             record: recordId,
             tenant: record.tenant._id,
-            amount: amount / 100,
+            amount: paymentAmount,
             paymentMethod: 'razorpay',
             transactionId: order.id, // Store order ID temporarily
             status: 'pending'

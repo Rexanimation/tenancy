@@ -16,9 +16,10 @@ interface RenterDashboardProps {
   onLogout: () => void;
   notifications: Notification[];
   onUpdateUser?: (user: User) => void;
+  onRefreshRecords?: () => void;
 }
 
-export default function RenterDashboard({ user, records, onLogout, notifications, onUpdateUser }: RenterDashboardProps) {
+export default function RenterDashboard({ user, records, onLogout, notifications, onUpdateUser, onRefreshRecords }: RenterDashboardProps) {
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
   const [paymentRecord, setPaymentRecord] = useState<RecordType | null>(null);
   const [receiptTransactionId, setReceiptTransactionId] = useState<string | null>(null);
@@ -38,6 +39,12 @@ export default function RenterDashboard({ user, records, onLogout, notifications
   const unreadCount = useMemo(() => renterNotifications.filter(n => !n.read).length, [renterNotifications]);
 
   const handleProfilePhotoUpdate = (newPictureUrl: string) => {
+    // If we have a refresh function, use it to get fresh user data from server
+    if (onRefreshRecords) {
+      onRefreshRecords();
+    }
+
+    // Optimistic update if needed, but refresh is better
     if (onUpdateUser) {
       onUpdateUser({ ...user, profilePicture: newPictureUrl });
     }

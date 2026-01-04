@@ -243,7 +243,7 @@ export default function useTenancy() {
     }
   }, []);
 
-  // Refresh records from API (for auto-update when payments are made)
+  // Refresh records and user data (for auto-update when payments are made)
   const refreshRecords = useCallback(async () => {
     try {
       if (currentUser?.role === 'admin') {
@@ -254,11 +254,19 @@ export default function useTenancy() {
         setUsers(tenantsData);
         setRecords(recordsData);
       } else if (currentUser) {
-        const recordsData = await recordAPI.getTenantRecords(currentUser._id);
+        // Fetch fresh user data (to sync dues/advance/profilePic) AND records
+        const [userData, recordsData] = await Promise.all([
+          authAPI.getMe(),
+          recordAPI.getTenantRecords(currentUser._id)
+        ]);
+
+        if (userData) {
+          setCurrentUser(userData);
+        }
         setRecords(recordsData);
       }
     } catch (err: any) {
-      console.error('Error refreshing records:', err);
+      console.error('Error refreshing data:', err);
     }
   }, [currentUser]);
 

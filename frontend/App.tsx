@@ -66,9 +66,9 @@ function DashboardSwitcher() {
         records={renterRecords}
         onLogout={logout}
         notifications={notifications}
+        onRefreshRecords={refreshRecords}
         onUpdateUser={(_updatedUser) => {
-          // Force page reload to refresh user data after photo upload
-          window.location.reload();
+          // We can let the refreshRecords handle it, or keep this as empty/fallback
         }}
       />
     );

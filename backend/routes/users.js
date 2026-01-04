@@ -99,7 +99,7 @@ router.patch('/:id/reject', protect, adminOnly, async (req, res) => {
 // @access  Private
 router.patch('/:id', protect, async (req, res) => {
     try {
-        const { unit, rentAmount, electricityRate, electricityUnits, municipalFee, parkingCharges, penalties, dues, upiId } = req.body;
+        const { name, unit, rentAmount, electricityRate, electricityUnits, municipalFee, parkingCharges, penalties, dues, upiId } = req.body;
 
         // Users can only update their own profile, unless they're admin
         if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
@@ -112,6 +112,7 @@ router.patch('/:id', protect, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        if (name !== undefined) user.name = name;
         if (unit !== undefined) user.unit = unit;
         if (rentAmount !== undefined) user.rentAmount = rentAmount;
         if (electricityRate !== undefined && req.user.role === 'admin') user.electricityRate = electricityRate;

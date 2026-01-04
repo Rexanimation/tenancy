@@ -1,6 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera } from 'lucide-react';
+import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera, Edit2, Check, X } from 'lucide-react';
 import { User, RecordType, Notification } from '../types';
 import NotificationsPanel from './NotificationsPanel';
 import PaymentPage from './PaymentPage';
@@ -8,6 +8,7 @@ import PaymentReceipt from './PaymentReceipt';
 import ProfilePictureUpload from './ProfilePictureUpload';
 import { formatINR } from '../utils/currency';
 import { getProfileImageUrl } from '../utils/images';
+import { userAPI } from '../utils/api';
 
 interface RenterDashboardProps {
   user: User;
@@ -23,6 +24,11 @@ export default function RenterDashboard({ user, records, onLogout, notifications
   const [receiptTransactionId, setReceiptTransactionId] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
+  // Name edit state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState(user.name);
+  const [isSavingName, setIsSavingName] = useState(false);
+
   const latestRecord = records[0];
   const totalDue = records
     .filter((r) => !r.paid)
@@ -36,6 +42,28 @@ export default function RenterDashboard({ user, records, onLogout, notifications
       onUpdateUser({ ...user, profilePicture: newPictureUrl });
     }
     setIsPhotoModalOpen(false);
+  };
+
+  const handleNameSave = async () => {
+    if (!newName.trim() || newName === user.name) {
+      setIsEditingName(false);
+      setNewName(user.name);
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      const response = await userAPI.updateProfile(user._id, { name: newName });
+      if (onUpdateUser) {
+        onUpdateUser(response.user);
+      }
+      setIsEditingName(false);
+    } catch (error) {
+      console.error('Failed to update name:', error);
+      alert('Failed to update name. Please try again.');
+    } finally {
+      setIsSavingName(false);
+    }
   };
 
   // Auto-open upload modal if picture is missing (onboarding)
@@ -66,7 +94,30 @@ export default function RenterDashboard({ user, records, onLogout, notifications
               </div>
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Welcome, {user.name}</h1>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="border border-slate-300 rounded px-2 py-1 text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 w-40"
+                    autoFocus
+                  />
+                  <button onClick={handleNameSave} disabled={isSavingName} className="p-1 text-green-600 hover:bg-green-50 rounded">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => { setIsEditingName(false); setNewName(user.name); }} className="p-1 text-red-600 hover:bg-red-50 rounded">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  Welcome, {user.name}
+                  <button onClick={() => setIsEditingName(true)} className="text-slate-400 hover:text-indigo-600 transition-colors">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </h1>
+              )}
               <p className="text-xs text-indigo-600 cursor-pointer hover:underline" onClick={() => setIsPhotoModalOpen(true)}>Update Photo</p>
             </div>
           </div>

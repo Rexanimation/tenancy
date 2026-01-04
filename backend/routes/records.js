@@ -115,17 +115,12 @@ router.post('/', protect, adminOnly, async (req, res) => {
             wasUpdated = true;
         } else {
             // Create new record
-            // AUTO-APPLY DUES/ADVANCE FROM USER PROFILE
-            const currentDues = tenant.dues || 0;
-            const currentAdvance = tenant.advancePaid || 0;
+            // Dues/Advance are already pre-filled in the frontend from the user profile.
+            // So we simply take the value from the request body.
+            // We DO NOT add them again here to avoid double counting.
 
-            // Use values from request body, OR add global dues if not explicitly overridden (or just ADD them?)
-            // Logic: The admin might enter specific monthly dues. The global dues should be ADDED to that.
-            // BUT, usually admin just clicks "Create Bill".
-            // Let's ADD global dues to whatever is passed (usually 0).
-
-            const finalDues = (Number(dues) || 0) + currentDues;
-            const finalAdvance = (Number(advanceCredit) || 0) + currentAdvance;
+            const finalDues = Number(dues) || 0;
+            const finalAdvance = Number(advanceCredit) || 0;
 
             record = await Record.create({
                 tenant: tenantId,
@@ -145,7 +140,8 @@ router.post('/', protect, adminOnly, async (req, res) => {
             });
 
             // RESET User's global dues/advance since they are now captured in this bill
-            if (currentDues > 0 || currentAdvance > 0) {
+            // Whether they were 0 or 800, they are now "moved" into this record.
+            if (tenant.dues > 0 || tenant.advancePaid > 0) {
                 tenant.dues = 0;
                 tenant.advancePaid = 0;
                 await tenant.save();

@@ -202,20 +202,17 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                 {(latestRecord.dues || 0) > 0 && (
                   <div className="flex justify-between text-sm"><span className="text-orange-600 flex items-center gap-2">₹ Dues</span><span className="font-semibold text-orange-600">{formatINR(latestRecord.dues || 0)}</span></div>
                 )}
-                <div className="border-t pt-3 mt-2 flex justify-between font-bold text-slate-800">
-                  <span>{latestRecord.paid ? 'Paid Amount' : 'Total'}</span>
-                  <div className="text-right">
-                    {latestRecord.paid ? (
-                      <>
-                        <span>{formatINR(latestRecord.paidAmount || (latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0)))}</span>
-                        {(latestRecord.paidAmount !== undefined && latestRecord.paidAmount < (latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))) && (
-                          <p className="text-xs text-slate-400 font-normal">Bill: <span className="line-through">{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span></p>
-                        )}
-                      </>
-                    ) : (
-                      <span>{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span>
-                    )}
+                <div className="border-t pt-3 mt-2 font-bold text-slate-800">
+                  <div className="flex justify-between items-center text-lg">
+                    <span>Total Bill</span>
+                    <span>{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span>
                   </div>
+                  {latestRecord.paid && (
+                    <div className="flex justify-between items-center text-sm font-medium text-green-600 mt-1">
+                      <span>Paid Amount</span>
+                      <span>{formatINR(latestRecord.paidAmount || (latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0)))}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -236,17 +233,11 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                         <p className="text-xs text-slate-500">Due: {record.date}</p>
                       </div>
                     </div>
-                    <div className="text-right flex items-center gap-2">
+                    <div className="text-right flex items-center gap-4">
                       <div className="flex flex-col items-end">
-                        {record.paid ? (
-                          <>
-                            <p className="font-bold text-green-600 text-lg">{formatINR(record.paidAmount || (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0)))}</p>
-                            {(record.paidAmount !== undefined && record.paidAmount < (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))) && (
-                              <p className="text-xs text-slate-400">Bill: <span className="line-through">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</span></p>
-                            )}
-                          </>
-                        ) : (
-                          <p className="font-bold text-slate-800 text-lg">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</p>
+                        <p className="font-bold text-slate-800 text-lg">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</p>
+                        {record.paid && (
+                          <p className="text-xs font-semibold text-green-600">Paid: {formatINR(record.paidAmount || (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0)))}</p>
                         )}
                       </div>
                       {record.paid ? (

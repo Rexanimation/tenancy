@@ -27,9 +27,15 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
     const [transactionId, setTransactionId] = useState('');
     const [paymentMethod, setPaymentMethod] = useState<'upi' | 'razorpay'>('razorpay');
 
+    const [payAmount, setPayAmount] = useState(0);
+
     const totalAmount = record.rent + record.electricity + record.parking +
         (record.penalties || 0) + (record.dues || 0) +
         (record.municipalFee || 0);
+
+    useEffect(() => {
+        setPayAmount(totalAmount);
+    }, [totalAmount]);
 
     useEffect(() => {
         const fetchPaymentSettings = async () => {
@@ -50,8 +56,8 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
         try {
             setSubmitting(true);
 
-            // 1. Create order on backend
-            const orderResponse = await paymentAPI.initiateRazorpayPayment(record._id);
+            // 1. Create order on backend (send payAmount)
+            const orderResponse = await paymentAPI.initiateRazorpayPayment(record._id, payAmount);
 
             if (!orderResponse.success) {
                 alert(orderResponse.message || 'Failed to initiate payment');
@@ -222,6 +228,24 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
                         {/* Payment Method Selection */}
                         <div className="mb-6">
                             <h4 className="font-semibold text-slate-800 mb-3">Choose Payment Method:</h4>
+
+                            {/* Payment Amount Input */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Payment Amount (₹)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={payAmount}
+                                    onChange={(e) => setPayAmount(Number(e.target.value))}
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    min="1"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    You can pay a partial amount (added to dues) or an advance amount (credited next month).
+                                </p>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={() => setPaymentMethod('razorpay')}
@@ -266,11 +290,11 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
                                 </div>
                                 <button
                                     onClick={handleRazorpayPayment}
-                                    disabled={submitting}
+                                    disabled={submitting || payAmount <= 0}
                                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     <CreditCard className="w-5 h-5" />
-                                    {submitting ? 'Processing...' : 'Pay with Razorpay'}
+                                    {submitting ? 'Processing...' : `Pay ${formatINR(payAmount)} with Razorpay`}
                                 </button>
                             </div>
                         )}

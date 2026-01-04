@@ -148,17 +148,32 @@ export default function RenterDashboard({ user, records, onLogout, notifications
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-indigo-600 rounded-xl p-6 text-white shadow-lg shadow-indigo-200 flex flex-col justify-between">
-            <div>
-              <p className="text-indigo-200 text-sm font-medium mb-1">Total Outstanding Due</p>
-              <h2 className="text-4xl font-bold">{formatINR(totalDue)}</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-indigo-200 text-sm font-medium mb-1">Total Outstanding Due</p>
+                <h2 className="text-4xl font-bold">{formatINR(totalDue)}</h2>
+              </div>
+
+              {/* Global Dues/Advance Display */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-indigo-500">
+                <div>
+                  <p className="text-indigo-200 text-xs font-medium mb-1">Passbook Dues</p>
+                  <p className="text-lg font-bold">{formatINR(user.dues || 0)}</p>
+                </div>
+                <div>
+                  <p className="text-indigo-200 text-xs font-medium mb-1">Advance Credit</p>
+                  <p className="text-lg font-bold text-green-300">{formatINR(user.advancePaid || 0)}</p>
+                </div>
+              </div>
             </div>
+
             <button
               onClick={() => {
                 const unpaidRecord = records.find(r => !r.paid);
                 if (unpaidRecord) setPaymentRecord(unpaidRecord);
               }}
               disabled={totalDue === 0}
-              className="mt-4 bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold w-full md:w-auto self-start hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-6 bg-white text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold w-full md:w-auto self-start hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Pay Now
             </button>

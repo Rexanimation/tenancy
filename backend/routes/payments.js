@@ -110,7 +110,7 @@ router.post('/razorpay/order', protect, approvedOnly, async (req, res) => {
             return res.status(503).json({ message: 'Payment gateway not configured' });
         }
 
-        const { recordId } = req.body;
+        const { recordId, amount: customAmount } = req.body;
         const record = await Record.findById(recordId).populate('tenant');
 
         if (!record) return res.status(404).json({ message: 'Record not found' });
@@ -121,15 +121,23 @@ router.post('/razorpay/order', protect, approvedOnly, async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        const amount = Math.round((record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0)) * 100); // Amount in paisa
+        const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
+
+        // Use custom amount if provided (in rupees), otherwise use full bill total
+        // Ensure amount is valid
+        const paymentAmount = customAmount ? Number(customAmount) : billTotal;
+        if (paymentAmount <= 0) return res.status(400).json({ message: 'Invalid payment amount' });
+
+        const amountInPaisa = Math.round(paymentAmount * 100);
 
         const options = {
-            amount: amount,
+            amount: amountInPaisa,
             currency: "INR",
             receipt: `receipt_${recordId}`,
             notes: {
                 recordId: recordId,
-                tenantId: record.tenant._id.toString()
+                tenantId: record.tenant._id.toString(),
+                originalBillTotal: billTotal // Store original bill amount for verification logic
             }
         };
 
@@ -189,14 +197,35 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                 transaction.notes = 'Payment verified via Razorpay';
                 await transaction.save();
 
-                // Update record
+                // Update record and user balance
                 const record = await Record.findById(transaction.record);
                 if (record) {
                     record.paid = true;
                     record.paidDate = new Date();
                     record.paymentMethod = 'razorpay';
                     record.transactionId = razorpay_payment_id;
+                    record.paidAmount = transaction.amount; // Store actual paid amount
                     await record.save();
+
+                    // Calculate difference and update user balance
+                    const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
+                    const paidAmount = transaction.amount;
+                    const difference = paidAmount - billTotal;
+
+                    const User = (await import('../models/User.js')).default;
+                    const tenant = await User.findById(record.tenant);
+
+                    if (tenant) {
+                        if (difference > 0) {
+                            // Paid more: Add to advance
+                            tenant.advancePaid = (tenant.advancePaid || 0) + difference;
+                        } else if (difference < 0) {
+                            // Paid less: Add difference (absolute value) to dues
+                            tenant.dues = (tenant.dues || 0) + Math.abs(difference);
+                        }
+                        // If difference is 0, no change to balance
+                        await tenant.save();
+                    }
                 }
             }
 

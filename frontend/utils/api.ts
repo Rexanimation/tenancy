@@ -173,8 +173,8 @@ export const paymentAPI = {
     },
 
     // Razorpay APIs
-    initiateRazorpayPayment: async (recordId: string) => {
-        const response = await api.post('/api/payments/razorpay/order', { recordId });
+    initiateRazorpayPayment: async (recordId: string, amount?: number) => {
+        const response = await api.post('/api/payments/razorpay/order', { recordId, amount });
         return response.data;
     },
 

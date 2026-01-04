@@ -83,6 +83,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
         if (existingRecord) {
             // Update existing record instead of creating new one
+            // ... (keep existing update logic if needed, but primary focus is creation)
+            // Ideally we only auto-apply on CREATION to avoid double-counting if we edit.
+            // But if we edit and change dues/advance manually, we should respect that.
+
+            // For now, let's keep array of updates simple.
+            // If the user manually sends dues/advance in body, use that.
+
             existingRecord.rent = Number(rent);
             existingRecord.electricity = Number(electricity);
             existingRecord.electricityUnits = Number(electricityUnits) || 0;
@@ -93,14 +100,14 @@ router.post('/', protect, adminOnly, async (req, res) => {
             existingRecord.dues = Number(dues) || 0;
             existingRecord.advanceCredit = Number(advanceCredit) || 0;
             existingRecord.date = date;
-            // Update paid status (even if it was previously paid)
+
             if (paid !== undefined) {
                 existingRecord.paid = paid;
-                // If marking as unpaid, clear payment details
                 if (!paid) {
                     existingRecord.paidDate = undefined;
                     existingRecord.transactionId = undefined;
                     existingRecord.paymentMethod = undefined;
+                    existingRecord.paidAmount = 0; // Reset paid amount if unpaid
                 }
             }
             await existingRecord.save();
@@ -108,6 +115,18 @@ router.post('/', protect, adminOnly, async (req, res) => {
             wasUpdated = true;
         } else {
             // Create new record
+            // AUTO-APPLY DUES/ADVANCE FROM USER PROFILE
+            const currentDues = tenant.dues || 0;
+            const currentAdvance = tenant.advancePaid || 0;
+
+            // Use values from request body, OR add global dues if not explicitly overridden (or just ADD them?)
+            // Logic: The admin might enter specific monthly dues. The global dues should be ADDED to that.
+            // BUT, usually admin just clicks "Create Bill".
+            // Let's ADD global dues to whatever is passed (usually 0).
+
+            const finalDues = (Number(dues) || 0) + currentDues;
+            const finalAdvance = (Number(advanceCredit) || 0) + currentAdvance;
+
             record = await Record.create({
                 tenant: tenantId,
                 month,
@@ -119,26 +138,33 @@ router.post('/', protect, adminOnly, async (req, res) => {
                 municipalFee: Number(municipalFee) || 0,
                 parking: Number(parking),
                 penalties: Number(penalties) || 0,
-                dues: Number(dues) || 0,
-                advanceCredit: Number(advanceCredit) || 0,
+                dues: finalDues,
+                advanceCredit: finalAdvance,
                 paid: paid || false,
                 date,
             });
+
+            // RESET User's global dues/advance since they are now captured in this bill
+            if (currentDues > 0 || currentAdvance > 0) {
+                tenant.dues = 0;
+                tenant.advancePaid = 0;
+                await tenant.save();
+            }
         }
 
-        // Clear tenant's dues and advance after they're used in a bill
-        if (Number(dues) > 0 || Number(advanceCredit) > 0) {
-            tenant.dues = Math.max(0, (tenant.dues || 0) - Number(dues));
-            tenant.advancePaid = Math.max(0, (tenant.advancePaid || 0) - Number(advanceCredit));
-            await tenant.save();
-        }
+        // We don't need to subtract passed 'dues' variable from tenant anymore, 
+        // because we are assuming the global dues ARE the dues.
+        // If admin passes specific 'dues', it is for this month specifically.
+
+        // Remove the old logic that subtracted body.dues from tenant.dues
+        // if (Number(dues) > 0 || Number(advanceCredit) > 0) { ... } -> REMOVED
 
         const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
 
         res.status(wasUpdated ? 200 : 201).json({
             ...populatedRecord.toObject(),
             _wasUpdated: wasUpdated,
-            message: wasUpdated ? `Bill for ${month} ${year} was updated (previous bill existed)` : undefined
+            message: wasUpdated ? `Bill for ${month} ${year} was updated` : undefined
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

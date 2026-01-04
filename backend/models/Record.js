@@ -55,6 +55,10 @@ const recordSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    paidAmount: {
+        type: Number,
+        default: 0,
+    },
     date: {
         type: String, // Store as 'YYYY-MM-DD' format
         required: true,

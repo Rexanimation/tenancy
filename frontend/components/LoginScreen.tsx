@@ -104,8 +104,8 @@ export default function LoginScreen({ onGoogleSignIn, apiError, apiMessage }: Lo
           )}
         </button>
 
-        {/* Email and Password Fields - Optional/Future Enhancement */}
-        <div className="border-t pt-4 mt-4">
+        {/* Email and Password Fields - Disabled/Hidden */}
+        {/* <div className="border-t pt-4 mt-4">
           <p className="text-xs text-slate-400 text-center mb-3">Or sign in with email</p>
 
           <div className="mb-3">
@@ -138,7 +138,7 @@ export default function LoginScreen({ onGoogleSignIn, apiError, apiMessage }: Lo
           <p className="text-xs text-center text-slate-500 mt-4">
             Don't have an account? <span className="text-blue-600 cursor-not-allowed">Sign up</span>
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

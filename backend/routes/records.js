@@ -79,92 +79,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
         });
 
         let record;
-        let wasUpdated = false;
 
         if (existingRecord) {
-            // Update existing record instead of creating new one
-            // ... (keep existing update logic if needed, but primary focus is creation)
-            // Ideally we only auto-apply on CREATION to avoid double-counting if we edit.
-            // But if we edit and change dues/advance manually, we should respect that.
-
-            // For now, let's keep array of updates simple.
-            // If the user manually sends dues/advance in body, use that.
-
-            existingRecord.rent = Number(rent);
-            existingRecord.electricity = Number(electricity);
-            existingRecord.electricityUnits = Number(electricityUnits) || 0;
-            existingRecord.electricityRate = Number(electricityRate) || 0;
-            existingRecord.municipalFee = Number(municipalFee) || 0;
-            existingRecord.parking = Number(parking);
-            existingRecord.penalties = Number(penalties) || 0;
-            existingRecord.dues = Number(dues) || 0;
-            existingRecord.advanceCredit = Number(advanceCredit) || 0;
-            existingRecord.date = date;
-
-            if (paid !== undefined) {
-                existingRecord.paid = paid;
-                if (!paid) {
-                    existingRecord.paidDate = undefined;
-                    existingRecord.transactionId = undefined;
-                    existingRecord.paymentMethod = undefined;
-                    existingRecord.paidAmount = 0; // Reset paid amount if unpaid
-                }
-            }
-            await existingRecord.save();
-            record = existingRecord;
-            wasUpdated = true;
-        } else {
-            // Create new record
-            // Dues/Advance are already pre-filled in the frontend from the user profile.
-            // So we simply take the value from the request body.
-            // We DO NOT add them again here to avoid double counting.
-
-            const finalDues = Number(dues) || 0;
-            const finalAdvance = Number(advanceCredit) || 0;
-
-            record = await Record.create({
-                tenant: tenantId,
-                month,
-                year,
-                rent: Number(rent),
-                electricity: Number(electricity),
-                electricityUnits: Number(electricityUnits) || 0,
-                electricityRate: Number(electricityRate) || 0,
-                municipalFee: Number(municipalFee) || 0,
-                parking: Number(parking),
-                penalties: Number(penalties) || 0,
-                dues: finalDues,
-                advanceCredit: finalAdvance,
-                paid: paid || false,
-                date,
-            });
-
-            // RESET User's global dues/advance since they are now captured in this bill
-            // Whether they were 0 or 800, they are now "moved" into this record.
-            if (tenant.dues > 0 || tenant.advancePaid > 0) {
-                tenant.dues = 0;
-                tenant.advancePaid = 0;
-                await tenant.save();
-            }
-        }
-
-        // We don't need to subtract passed 'dues' variable from tenant anymore, 
-        // because we are assuming the global dues ARE the dues.
-        // If admin passes specific 'dues', it is for this month specifically.
-
-        // Remove the old logic that subtracted body.dues from tenant.dues
-        // if (Number(dues) > 0 || Number(advanceCredit) > 0) { ... } -> REMOVED
-
-        const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
-
-        res.status(wasUpdated ? 200 : 201).json({
-            ...populatedRecord.toObject(),
-            _wasUpdated: wasUpdated,
             message: wasUpdated ? `Bill for ${month} ${year} was updated` : undefined
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.status(500).json({ message: error.message });
+}
 });
 
 // @route   PUT /api/records/:id

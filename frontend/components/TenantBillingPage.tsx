@@ -133,8 +133,13 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
             } else {
                 alert('Bill created successfully!');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating bill:', error);
+            if (error.response && error.response.data && error.response.data.message) {
+                alert(error.response.data.message);
+            } else {
+                alert('An error occurred while creating the bill.');
+            }
         }
         setIsCreatingBill(false);
     };

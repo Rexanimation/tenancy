@@ -377,7 +377,12 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
                   {(record.dues || 0) > 0 && <div className="flex items-center gap-1 text-orange-600">₹ Dues: {formatINR(record.dues || 0)}</div>}
                 </div>
               </td>
-              <td className="px-6 py-4 font-bold text-slate-800">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</td>
+              <td className="px-6 py-4 font-bold text-slate-800">
+                {record.paid ?
+                  (record.paidAmount ? formatINR(record.paidAmount) : formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0)))
+                  : formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))
+                }
+              </td>
               <td className="px-6 py-4 text-center">
                 {record.paid ? <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium border border-green-100"><CheckCircle className="w-3 h-3" /> Paid</span> :
                   <button onClick={() => onMarkAsPaid(record)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold px-3 py-1 rounded-full transition-colors">Mark as Paid</button>}

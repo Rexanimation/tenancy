@@ -226,7 +226,18 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                       </div>
                     </div>
                     <div className="text-right flex items-center gap-2">
-                      <p className="font-bold text-slate-800 text-lg">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</p>
+                      <div className="flex flex-col items-end">
+                        {record.paid ? (
+                          <>
+                            <p className="font-bold text-green-600 text-lg">{formatINR(record.paidAmount || (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0)))}</p>
+                            {(record.paidAmount !== undefined && record.paidAmount < (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))) && (
+                              <p className="text-xs text-slate-400">Bill: <span className="line-through">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</span></p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="font-bold text-slate-800 text-lg">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</p>
+                        )}
+                      </div>
                       {record.paid ? (
                         <>
                           <span className="inline-flex items-center gap-1.5 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-medium border border-green-100"><CheckCircle className="w-3.5 h-3.5" /> Paid</span>

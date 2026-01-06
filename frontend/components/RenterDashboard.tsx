@@ -30,6 +30,11 @@ export default function RenterDashboard({ user, records, onLogout, notifications
   const [newName, setNewName] = useState(user.name);
   const [isSavingName, setIsSavingName] = useState(false);
 
+  // Filters
+  const [filterYear, setFilterYear] = useState<string>('');
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterDay, setFilterDay] = useState<string>('');
+
   const latestRecord = records[0];
   const totalDue = records
     .filter((r) => !r.paid)
@@ -37,6 +42,28 @@ export default function RenterDashboard({ user, records, onLogout, notifications
 
   const renterNotifications = useMemo(() => notifications.filter(n => n.userId === user._id), [notifications, user._id]);
   const unreadCount = useMemo(() => renterNotifications.filter(n => !n.read).length, [renterNotifications]);
+
+  // Derived filter options
+  const uniqueYears = useMemo(() => {
+    const years = new Set(records.map(r => r.year));
+    return Array.from(years).sort().reverse();
+  }, [records]);
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const filteredRecords = useMemo(() => {
+    return records.filter(record => {
+      const matchYear = filterYear ? record.year === filterYear : true;
+      const matchMonth = filterMonth ? record.month === filterMonth : true;
+      // record.date is YYYY-MM-DD
+      const recordDay = record.date ? record.date.split('-')[2] : '';
+      const matchDay = filterDay ? recordDay === filterDay.padStart(2, '0') : true;
+      return matchYear && matchMonth && matchDay;
+    });
+  }, [records, filterYear, filterMonth, filterDay]);
 
   const handleProfilePhotoUpdate = (newPictureUrl: string) => {
     // If we have a refresh function, use it to get fresh user data from server
@@ -220,11 +247,54 @@ export default function RenterDashboard({ user, records, onLogout, notifications
         </div>
 
         <div>
-          <h3 className="text-lg font-bold text-slate-800 mb-4">Billing History</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <h3 className="text-lg font-bold text-slate-800">Billing History</h3>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Months</option>
+                {months.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(e.target.value)}
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Years</option>
+                {uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+
+              <input
+                type="number"
+                placeholder="Day"
+                min="1"
+                max="31"
+                value={filterDay}
+                onChange={(e) => setFilterDay(e.target.value)}
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white w-20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+
+              {(filterMonth || filterYear || filterDay) && (
+                <button
+                  onClick={() => { setFilterMonth(''); setFilterYear(''); setFilterDay(''); }}
+                  className="text-sm text-red-600 hover:text-red-700 font-medium px-2"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            {records.length > 0 ? (
+            {filteredRecords.length > 0 ? (
               <div className="divide-y divide-slate-100">
-                {records.map((record) => (
+                {filteredRecords.map((record) => (
                   <div key={record._id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="bg-slate-100 p-3 rounded-lg text-slate-500"><Calendar className="w-5 h-5" /></div>

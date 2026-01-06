@@ -79,13 +79,65 @@ router.post('/', protect, adminOnly, async (req, res) => {
         });
 
         let record;
+        let wasUpdated = false;
 
         if (existingRecord) {
+            record = existingRecord;
+            record.rent = Number(rent);
+            record.electricity = Number(electricity);
+            record.electricityUnits = Number(electricityUnits);
+            record.electricityRate = Number(electricityRate);
+            record.municipalFee = Number(municipalFee);
+            record.parking = Number(parking);
+            record.penalties = Number(penalties);
+            record.dues = Number(dues);
+            record.advanceCredit = Number(advanceCredit);
+
+            // If paid status is explicitly sent, update it
+            if (paid !== undefined) {
+                record.paid = paid;
+                if (paid && !record.paidDate) {
+                    record.paidDate = new Date();
+                } else if (!paid) {
+                    record.paidDate = undefined;
+                    record.transactionId = undefined;
+                }
+            }
+
+            wasUpdated = true;
+        } else {
+            record = new Record({
+                tenant: tenantId,
+                month,
+                year,
+                date,
+                rent: Number(rent),
+                electricity: Number(electricity),
+                electricityUnits: Number(electricityUnits),
+                electricityRate: Number(electricityRate),
+                municipalFee: Number(municipalFee),
+                parking: Number(parking),
+                penalties: Number(penalties),
+                dues: Number(dues),
+                advanceCredit: Number(advanceCredit),
+                paid: paid || false
+            });
+
+            if (paid) {
+                record.paidDate = new Date();
+            }
+        }
+
+        const savedRecord = await record.save();
+        const populatedRecord = await Record.findById(savedRecord._id).populate('tenant', 'name email unit rentAmount');
+
+        res.status(wasUpdated ? 200 : 201).json({
+            ...populatedRecord.toObject(),
             message: wasUpdated ? `Bill for ${month} ${year} was updated` : undefined
         });
     } catch (error) {
-    res.status(500).json({ message: error.message });
-}
+        res.status(500).json({ message: error.message });
+    }
 });
 
 // @route   PUT /api/records/:id

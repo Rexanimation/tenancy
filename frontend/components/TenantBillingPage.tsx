@@ -12,9 +12,10 @@ interface TenantBillingPageProps {
     onBack: () => void;
     onAddRecord: (record: NewRecordData) => Promise<any>;
     onUpdateTenant: (tenant: User) => void;
+    onRefreshRecords?: () => Promise<void>;
 }
 
-export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdateTenant }: TenantBillingPageProps) {
+export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdateTenant, onRefreshRecords }: TenantBillingPageProps) {
     const [isEditingSettings, setIsEditingSettings] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isCreatingBill, setIsCreatingBill] = useState(false);
@@ -119,6 +120,12 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
                 paid: false,
             };
             const result = await onAddRecord(recordData);
+
+            // Trigger refresh on the parent component to update pending payments
+            if (onRefreshRecords) {
+                await onRefreshRecords();
+            }
+
             // Reset form - clear dues and advance since they're used
             setBillData(prev => ({
                 ...prev,

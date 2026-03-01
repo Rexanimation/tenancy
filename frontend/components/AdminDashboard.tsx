@@ -83,12 +83,20 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
       const matchMonth = revenueMonth === 'All' || r.month === revenueMonth;
       // Only count revenue from active tenants to avoid phantom numbers
       const tenantExists = tenants.some(t => t._id === r.tenant?._id);
-      return matchYear && matchMonth && r.paid && tenantExists;
+      return matchYear && matchMonth && tenantExists;
     });
-  }, [records, revenueYear, revenueMonth]);
+  }, [records, revenueYear, revenueMonth, tenants]);
 
-  const totalRevenue = revenueFilteredRecords.reduce((acc, curr) =>
-    acc + curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0), 0);
+  const totalRevenue = revenueFilteredRecords.reduce((acc, curr) => {
+    // Determine the total paid amount for this record.
+    // If it's fully paid (r.paid), user might not have `paidAmount` stored if they paid via old method,
+    // so fallback to the total bill amount. 
+    // If it's partially paid, `paidAmount` should hold the value.
+    const totalBill = curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0) - (curr.advanceCredit || 0);
+    const paidSum = curr.paidAmount !== undefined ? curr.paidAmount : (curr.paid ? totalBill : 0);
+    return acc + paidSum;
+  }, 0);
+
   const pendingCount = filteredRecords.filter((r) => !r.paid).length;
 
   const adminNotifications = useMemo(() => notifications.filter(n => n.userId === user._id), [notifications, user._id]);
@@ -162,6 +170,7 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
         onBack={() => setSelectedTenant(null)}
         onAddRecord={onAddRecord}
         onUpdateTenant={handleUpdateTenant}
+        onRefreshRecords={refreshRecords}
       />
     );
   }

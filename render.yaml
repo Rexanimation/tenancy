@@ -1,9 +1,12 @@
 services:
   - type: web
     name: tenancy-tracker
-    env: docker
+    env: node
     plan: free
     branch: main
+    rootDir: backend
+    buildCommand: npm install --production
+    startCommand: node index.js
     envVars:
       - key: MONGODB_URI
         sync: false

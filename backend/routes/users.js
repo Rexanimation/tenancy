@@ -132,16 +132,18 @@ router.patch('/:id', protect, async (req, res) => {
 });
 
 // @route   POST /api/users/upload-picture
-// @desc    Upload profile picture
+// @desc    Upload profile picture (base64)
 // @access  Private
-router.post('/upload-picture', protect, upload.single('profilePicture'), async (req, res) => {
+router.post('/upload-picture', protect, async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
+        const { base64Image } = req.body;
+        
+        if (!base64Image) {
+             return res.status(400).json({ message: 'No image provided' });
         }
 
         const user = await User.findById(req.user._id);
-        user.profilePicture = `/uploads/profiles/${req.file.filename}`;
+        user.profilePicture = base64Image;
         await user.save();
 
         res.json({ message: 'Profile picture uploaded successfully', profilePicture: user.profilePicture });

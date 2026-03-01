@@ -48,13 +48,13 @@ export default function ProfilePictureUpload({
     };
 
     const handleUpload = async () => {
-        if (!selectedFile) return;
+        if (!selectedFile || !preview) return;
 
         try {
             setUploading(true);
             setError(null);
 
-            const result = await userAPI.uploadProfilePicture(selectedFile);
+            const result = await userAPI.uploadProfilePicture(preview);
             onUploadSuccess(result.profilePicture);
 
             // Reset state

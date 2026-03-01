@@ -91,14 +91,8 @@ export const userAPI = {
         return response.data;
     },
 
-    uploadProfilePicture: async (file: File) => {
-        const formData = new FormData();
-        formData.append('profilePicture', file);
-        const response = await api.post('/api/users/upload-picture', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+    uploadProfilePicture: async (base64String: string) => {
+        const response = await api.post('/api/users/upload-picture', { base64Image: base64String });
         return response.data;
     },
 };

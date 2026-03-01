@@ -343,9 +343,11 @@ export default function RenterDashboard({ user, records, onLogout, notifications
           record={paymentRecord}
           onClose={() => setPaymentRecord(null)}
           onPaymentComplete={() => {
-            // Refresh data or show success message
+            // Refresh data dynamically via React state callback instead of page reload
+            if (onRefreshRecords) {
+              onRefreshRecords();
+            }
             setPaymentRecord(null);
-            window.location.reload();
           }}
         />
       )}

@@ -16,18 +16,6 @@ export default function PublicHome() {
                         <span className="text-lg font-bold text-slate-800">Tenancy Tracker</span>
                     </div>
                     <div className="flex items-center gap-6">
-                        <Link to="/" className="text-slate-800 font-medium hover:text-blue-600 transition">
-                            Dashboard
-                        </Link>
-                        <Link to="/" className="text-slate-800 font-medium hover:text-blue-600 transition">
-                            Properties
-                        </Link>
-                        <Link to="/" className="text-slate-800 font-medium hover:text-blue-600 transition">
-                            Tenants
-                        </Link>
-                        <Link to="/" className="text-slate-800 font-medium hover:text-blue-600 transition">
-                            Reports
-                        </Link>
                         <Link to="/login" className="text-blue-600 font-medium hover:text-blue-800 transition px-4 py-2 border border-blue-600 rounded-lg">
                             Sign In
                         </Link>

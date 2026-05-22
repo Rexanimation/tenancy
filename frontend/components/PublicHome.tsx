@@ -55,7 +55,7 @@ export default function PublicHome() {
                         {/* Right Illustration */}
                         <div className="flex justify-center">
                             <img 
-                                src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=professional%20illustration%20of%20a%20confident%20landlord%20in%20business%20attire%20holding%20a%20digital%20clipboard%20with%20rental%20property%20house%20in%20background%2C%20clean%20modern%20style%2C%20blue%20color%20scheme&image_size=landscape_16_9" 
+                                src="/homepage2.png" 
                                 alt="Property Management" 
                                 className="max-w-full h-auto max-h-[400px]"
                             />

@@ -1,11 +1,7 @@
 
 import { Link } from 'react-router-dom';
 
-interface PublicHomeProps {
-    user?: any;
-}
-
-export default function PublicHome({ user }: PublicHomeProps) {
+export default function PublicHome() {
     return (
         <div className="min-h-screen bg-white flex flex-col">
             {/* Navigation Bar */}

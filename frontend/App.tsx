@@ -94,7 +94,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<PublicHome user={currentUser} />} />
+      <Route path="/" element={<PublicHome />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/pending-approval" element={<PendingApproval />} />

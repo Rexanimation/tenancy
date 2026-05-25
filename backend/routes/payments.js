@@ -308,4 +308,70 @@ router.get('/transactions', protect, approvedOnly, async (req, res) => {
     }
 });
 
+// @route   GET /api/payments/receipt/:id
+// @desc    Get a single payment receipt
+// @access  Private
+router.get('/receipt/:id', protect, approvedOnly, async (req, res) => {
+    try {
+        const transaction = await Transaction.findById(req.params.id)
+            .populate('tenant', 'name email unit')
+            .populate('record');
+
+        if (!transaction) {
+            return res.status(404).json({ message: 'Receipt not found' });
+        }
+
+        // Check ownership for renters
+        if (req.user.role === 'renter' && transaction.tenant._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        res.json(transaction);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   GET /api/payments/receipt/:id/pdf
+// @desc    Download receipt as PDF
+// @access  Private
+router.get('/receipt/:id/pdf', protect, approvedOnly, async (req, res) => {
+    try {
+        const transaction = await Transaction.findById(req.params.id)
+            .populate('tenant', 'name email unit')
+            .populate('record');
+
+        if (!transaction) {
+            return res.status(404).json({ message: 'Receipt not found' });
+        }
+
+        // Check ownership for renters
+        if (req.user.role === 'renter' && transaction.tenant._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        const record = transaction.record;
+        const tenant = transaction.tenant;
+
+        // Generate PDF
+        const pdfBuffer = await generatePaymentReceiptPDF({
+            tenantName: tenant.name,
+            tenantEmail: tenant.email,
+            amount: transaction.amount,
+            transactionId: transaction.transactionId || transaction._id,
+            paymentMethod: transaction.paymentMethod,
+            month: record.month,
+            year: record.year
+        });
+
+        // Send PDF as download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Payment_Receipt_${record.month}_${record.year}.pdf`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 export default router;

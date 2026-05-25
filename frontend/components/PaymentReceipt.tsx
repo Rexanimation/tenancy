@@ -12,6 +12,7 @@ interface PaymentReceiptProps {
 export default function PaymentReceipt({ transactionId, onClose }: PaymentReceiptProps) {
     const [transaction, setTransaction] = useState<Transaction | null>(null);
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         const fetchReceipt = async () => {
@@ -32,9 +33,16 @@ export default function PaymentReceipt({ transactionId, onClose }: PaymentReceip
         window.print();
     };
 
-    const handleDownload = () => {
-        // In a real app, you'd generate a PDF here
-        alert('PDF download feature coming soon!');
+    const handleDownload = async () => {
+        try {
+            setDownloading(true);
+            await paymentAPI.downloadReceiptPDF(transactionId);
+        } catch (error) {
+            console.error('Error downloading receipt:', error);
+            alert('Failed to download receipt. Please try again.');
+        } finally {
+            setDownloading(false);
+        }
     };
 
     if (loading) {
@@ -98,10 +106,15 @@ export default function PaymentReceipt({ transactionId, onClose }: PaymentReceip
                         </button>
                         <button
                             onClick={handleDownload}
-                            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            disabled={downloading}
+                            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Download PDF"
                         >
-                            <Download className="w-5 h-5" />
+                            {downloading ? (
+                                <div className="w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <Download className="w-5 h-5" />
+                            )}
                         </button>
                         <button
                             onClick={onClose}

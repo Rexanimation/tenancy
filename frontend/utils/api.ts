@@ -161,6 +161,33 @@ export const paymentAPI = {
         return response.data;
     },
 
+    downloadReceiptPDF: async (transactionId: string) => {
+        const response = await api.get(`/api/payments/receipt/${transactionId}/pdf`, {
+            responseType: 'blob',
+        });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Get filename from content-disposition or use default
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = 'Payment_Receipt.pdf';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
+
     getTransactions: async (filters?: { status?: string }) => {
         const response = await api.get('/api/payments/transactions', { params: filters });
         return response.data;

@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
+import { startPaymentReminderCron } from './utils/cronService.js';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -108,6 +109,9 @@ const connectDB = async () => {
         });
 
         console.log('✅ Connected to MongoDB');
+
+        // Start daily payment reminder cron job
+        startPaymentReminderCron();
 
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);

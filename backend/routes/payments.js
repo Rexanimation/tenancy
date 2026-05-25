@@ -1,14 +1,16 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import crypto from 'crypto';
 import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import { protect, adminOnly, approvedOnly } from '../middleware/auth.js';
 import PaymentSettings from '../models/PaymentSettings.js';
 import Transaction from '../models/Transaction.js';
 import Record from '../models/Record.js';
-import { sendEmail } from '../utils/emailService.js';
-import { getReceiptTemplate } from '../utils/emailTemplates.js';
+import User from '../models/User.js';
+import { sendEmail, getAdminEmails } from '../utils/emailService.js';
+import { getReceiptTemplate, getAdminPaymentReceivedTemplate } from '../utils/emailTemplates.js';
+import { generatePaymentReceiptPDF } from '../utils/pdfService.js';
 
 const router = express.Router();
 
@@ -233,7 +235,18 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                         const adminName = adminUser ? adminUser.name : 'Property Manager';
                         const adminEmail = adminUser ? adminUser.email : undefined;
 
-                        // 📧 Dispatch Payment Receipt Email asynchronously
+                        // Generate PDF Receipt
+                        const pdfBuffer = await generatePaymentReceiptPDF({
+                            tenantName: tenant.name,
+                            tenantEmail: tenant.email,
+                            amount: transaction.amount,
+                            transactionId: razorpay_payment_id,
+                            paymentMethod: 'razorpay',
+                            month: record.month,
+                            year: record.year
+                        });
+
+                        // 📧 Dispatch Payment Receipt Email asynchronously with PDF
                         sendEmail({
                             to: tenant.email,
                             subject: `Payment Confirmed: Rent for ${record.month} ${record.year} ✅`,
@@ -246,8 +259,34 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                                 record.year
                             ),
                             senderName: adminName,
-                            adminEmail: adminEmail
+                            adminEmail: adminEmail,
+                            attachments: [
+                                {
+                                    filename: `Payment_Receipt_${record.month}_${record.year}.pdf`,
+                                    content: pdfBuffer,
+                                    contentType: 'application/pdf'
+                                }
+                            ]
                         }).catch(err => console.error('Silent Email Error (Receipt):', err));
+
+                        // 📧 Dispatch Payment Received Email to all admins
+                        const adminEmails = getAdminEmails();
+                        if (adminEmails.length > 0) {
+                            sendEmail({
+                                to: adminEmails,
+                                subject: `Payment Received: ${tenant.name} - ${record.month} ${record.year}`,
+                                html: getAdminPaymentReceivedTemplate(
+                                    tenant.name,
+                                    tenant.email,
+                                    transaction.amount,
+                                    razorpay_payment_id,
+                                    record.month,
+                                    record.year
+                                ),
+                                senderName: adminName,
+                                adminEmail: adminEmail
+                            }).catch(err => console.error('Silent Email Error (Admin Payment Received):', err));
+                        }
                     }
                 }
             }

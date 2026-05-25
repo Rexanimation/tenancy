@@ -1,9 +1,10 @@
 import express from 'express';
-import { protect, adminOnly, approvedOnly } from '../middleware/auth.js';
+import { protect, adminOnly, approvedOnly } from '../middleware/auth.js';      
 import Record from '../models/Record.js';
 import User from '../models/User.js';
-import { sendEmail } from '../utils/emailService.js';
-import { getInvoiceTemplate, getReceiptTemplate } from '../utils/emailTemplates.js';
+import { sendEmail, getAdminEmails } from '../utils/emailService.js';
+import { getInvoiceTemplate, getReceiptTemplate, getAdminBillGeneratedTemplate, getAdminPaymentReceivedTemplate } from '../utils/emailTemplates.js';
+import { generatePaymentReceiptPDF } from '../utils/pdfService.js';
 
 const router = express.Router();
 
@@ -157,6 +158,25 @@ router.post('/', protect, adminOnly, async (req, res) => {
             }).catch(err => console.error('Silent Email Error (Invoice):', err));
         }
 
+        // 📧 Dispatch Bill Generated Email to all admins
+        const adminEmails = getAdminEmails();
+        const totalAmount = Number(record.rent) + Number(record.electricity) + Number(record.parking) + Number(record.penalties || 0) + Number(record.dues || 0) + Number(record.municipalFee || 0) - Number(record.advanceCredit || 0);
+        if (adminEmails.length > 0 && populatedRecord.tenant) {
+            sendEmail({
+                to: adminEmails,
+                subject: `Bill Generated: ${populatedRecord.tenant.name} - ${month} ${year}`,
+                html: getAdminBillGeneratedTemplate(
+                    populatedRecord.tenant.name,
+                    populatedRecord.tenant.email,
+                    month,
+                    year,
+                    totalAmount > 0 ? totalAmount : 0
+                ),
+                senderName: req.user.name,
+                adminEmail: req.user.email
+            }).catch(err => console.error('Silent Email Error (Admin Bill Generated):', err));
+        }
+
         res.status(wasUpdated ? 200 : 201).json({
             ...populatedRecord.toObject(),
             message: wasUpdated ? `Bill for ${month} ${year} was updated` : undefined
@@ -247,23 +267,65 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
 
         const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
 
-        // 📧 Dispatch manual Payment Receipt Email asynchronously (Option A)
+        // 📧 Dispatch manual Payment Receipt Email asynchronously with PDF
         if (paid && populatedRecord.tenant && populatedRecord.tenant.email) {
             const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0) - (record.advanceCredit || 0);
+            const finalTransactionId = transactionId || 'MANUAL_REF_' + Date.now();
+            const finalPaymentMethod = paymentMethod || 'cash';
+            const finalAmount = billTotal > 0 ? billTotal : 0;
+
+            // Generate PDF Receipt
+            const pdfBuffer = await generatePaymentReceiptPDF({
+                tenantName: populatedRecord.tenant.name,
+                tenantEmail: populatedRecord.tenant.email,
+                amount: finalAmount,
+                transactionId: finalTransactionId,
+                paymentMethod: finalPaymentMethod,
+                month: record.month,
+                year: record.year
+            });
+
+            // Send email to tenant with PDF attachment
             sendEmail({
                 to: populatedRecord.tenant.email,
                 subject: `Payment Confirmed: Rent for ${record.month} ${record.year} ✅`,
                 html: getReceiptTemplate(
                     populatedRecord.tenant.name,
-                    billTotal > 0 ? billTotal : 0,
-                    transactionId || 'MANUAL_REF_' + Date.now(),
-                    paymentMethod || 'cash',
+                    finalAmount,
+                    finalTransactionId,
+                    finalPaymentMethod,
                     record.month,
                     record.year
                 ),
                 senderName: req.user.name,
-                adminEmail: req.user.email
+                adminEmail: req.user.email,
+                attachments: [
+                    {
+                        filename: `Payment_Receipt_${record.month}_${record.year}.pdf`,
+                        content: pdfBuffer,
+                        contentType: 'application/pdf'
+                    }
+                ]
             }).catch(err => console.error('Silent Email Error (Manual Receipt):', err));
+
+            // Send email to all admins
+            const adminEmails = getAdminEmails();
+            if (adminEmails.length > 0) {
+                sendEmail({
+                    to: adminEmails,
+                    subject: `Payment Received: ${populatedRecord.tenant.name} - ${record.month} ${record.year}`,
+                    html: getAdminPaymentReceivedTemplate(
+                        populatedRecord.tenant.name,
+                        populatedRecord.tenant.email,
+                        finalAmount,
+                        finalTransactionId,
+                        record.month,
+                        record.year
+                    ),
+                    senderName: req.user.name,
+                    adminEmail: req.user.email
+                }).catch(err => console.error('Silent Email Error (Admin Payment Received):', err));
+            }
         }
 
         res.json(populatedRecord);

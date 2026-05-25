@@ -53,15 +53,24 @@ if (!transporterSahil && !transporterNick) {
 }
 
 /**
+ * Get all admin emails from ADMIN_EMAILS environment variable
+ */
+export const getAdminEmails = () => {
+    const adminEmailsStr = process.env.ADMIN_EMAILS || '';
+    return adminEmailsStr.split(',').map(email => email.trim()).filter(email => email);
+};
+
+/**
  * Base email dispatch function
- * @param {string} to - Recipient email address
+ * @param {string} to - Recipient email address(es) (comma-separated or array)
  * @param {string} subject - Email Subject line
  * @param {string} html - Beautiful HTML content
  * @param {string} [text] - Optional plain text fallback
  * @param {string} [adminEmail] - The email of the logged-in admin (Option B)
  * @param {string} [senderName] - Custom admin display name (Option A)
+ * @param {Array} [attachments] - Optional array of attachments (nodemailer format)
  */
-export const sendEmail = async ({ to, subject, html, text, adminEmail, senderName }) => {
+export const sendEmail = async ({ to, subject, html, text, adminEmail, senderName, attachments }) => {
     try {
         let activeTransporter = transporterSahil;
         let activeUser = process.env.SMTP_USER_SAHIL;
@@ -101,6 +110,7 @@ export const sendEmail = async ({ to, subject, html, text, adminEmail, senderNam
             subject,
             html,
             text: text || 'This email requires an HTML compatible viewer.',
+            attachments: attachments || [],
         };
 
         const info = await activeTransporter.sendMail(mailOptions);

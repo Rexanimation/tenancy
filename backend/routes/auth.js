@@ -2,7 +2,9 @@ import express from 'express';
 import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/auth.js';
-import User from '../models/User.js'; // Import User model
+import User from '../models/User.js';
+import { sendEmail, getAdminEmails } from '../utils/emailService.js';
+import { getAdminLoginNotificationTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -27,7 +29,7 @@ router.get('/google', (req, res, next) => {
 router.get(
     '/google/callback',
     passport.authenticate('google', { session: false }),
-    (req, res) => {
+    async (req, res) => {
         const user = req.user;
 
         const token = jwt.sign(
@@ -40,7 +42,16 @@ router.get(
             { expiresIn: '7d' }
         );
 
-        // res.cookie('token', token, { ... }); // Cookie approach failed due to cross-subdomain restrictions
+        // Send login notification to all admins
+        const adminEmails = getAdminEmails();
+        if (adminEmails.length > 0) {
+            sendEmail({
+                to: adminEmails,
+                subject: `User Login: ${user.name}`,
+                html: getAdminLoginNotificationTemplate(user.name, user.email, user.role),
+                senderName: 'Tenancy Tracker System'
+            }).catch(err => console.error('Silent Email Error (Login Notification):', err));
+        }
 
         // Redirect with token in URL (Frontend will save to LocalStorage)
         res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);

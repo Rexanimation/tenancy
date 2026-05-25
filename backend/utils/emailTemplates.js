@@ -237,7 +237,124 @@ export const getReceiptTemplate = (name, amount, transactionId, method, recordMo
             </div>
         </div>
         
-        <p style="margin-top: 30px;">A copy of this digital receipt is stored permanently in your transaction history dashboard.</p>
+        <p style="margin-top: 30px;">A copy of this digital receipt is stored permanently in your transaction history dashboard and attached as PDF.</p>
     `;
     return getEmailWrapper('Rent Payment Receipt - Tenancy Tracker', htmlContent);
+};
+
+export const getAdminLoginNotificationTemplate = (userName, userEmail, userRole) => {
+    const htmlContent = `
+        <h2>User Login Detected 🔐</h2>
+        <p>A user has logged into the Tenancy Tracker system:</p>
+        <div class="info-card">
+            <div class="info-row">
+                <span class="info-label">Name:</span>
+                <span class="info-value">${userName}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">${userEmail}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Role:</span>
+                <span class="info-value">${userRole}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Login Time:</span>
+                <span class="info-value">${new Date().toLocaleString()}</span>
+            </div>
+        </div>
+    `;
+    return getEmailWrapper('User Login - Tenancy Tracker', htmlContent);
+};
+
+export const getAdminBillGeneratedTemplate = (tenantName, tenantEmail, month, year, totalAmount) => {
+    const htmlContent = `
+        <h2>New Bill Generated 📄</h2>
+        <p>A new rent bill has been generated for a tenant:</p>
+        <div class="info-card">
+            <div class="info-row">
+                <span class="info-label">Tenant Name:</span>
+                <span class="info-value">${tenantName}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tenant Email:</span>
+                <span class="info-value">${tenantEmail}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Bill Month:</span>
+                <span class="info-value">${month} ${year}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Total Amount:</span>
+                <span class="price">₹${totalAmount}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Generated At:</span>
+                <span class="info-value">${new Date().toLocaleString()}</span>
+            </div>
+        </div>
+    `;
+    return getEmailWrapper('New Bill Generated - Tenancy Tracker', htmlContent);
+};
+
+export const getAdminPaymentReceivedTemplate = (tenantName, tenantEmail, amount, transactionId, month, year) => {
+    const htmlContent = `
+        <h2>Payment Received! 💰</h2>
+        <p>A rent payment has been received from a tenant:</p>
+        <div class="info-card">
+            <div class="info-row">
+                <span class="info-label">Tenant Name:</span>
+                <span class="info-value">${tenantName}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tenant Email:</span>
+                <span class="info-value">${tenantEmail}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Paid Amount:</span>
+                <span class="price">₹${amount}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Transaction ID:</span>
+                <span class="info-value" style="font-family: monospace; font-size: 13px;">${transactionId}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">For Month:</span>
+                <span class="info-value">${month} ${year}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Received At:</span>
+                <span class="info-value">${new Date().toLocaleString()}</span>
+            </div>
+        </div>
+    `;
+    return getEmailWrapper('Payment Received - Tenancy Tracker', htmlContent);
+};
+
+export const getPaymentReminderTemplate = (name, month, year, totalAmount, daysOverdue) => {
+    const htmlContent = `
+        <h2>Payment Reminder ⏰</h2>
+        <p>Dear ${name},</p>
+        <p>This is a ${daysOverdue > 0 ? '<strong style="color: #ef4444;">OVERDUE</strong>' : 'friendly'} reminder that your rent payment for <strong>${month} ${year}</strong> is ${daysOverdue > 0 ? `${daysOverdue} day(s) overdue` : 'due soon'}.</p>
+        
+        <div class="info-card">
+            <h3 style="margin-top:0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Outstanding Bill</h3>
+            <div class="info-row">
+                <span class="info-label">Bill Month:</span>
+                <span class="info-value">${month} ${year}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Total Amount Due:</span>
+                <span class="price">₹${totalAmount}</span>
+            </div>
+        </div>
+        
+        <p>Please log in to your account and complete the payment at your earliest convenience to avoid any late penalties.</p>
+        
+        <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'https://tenancy-frontend.onrender.com'}/dashboard" class="btn">Pay Now</a>
+        </div>
+    `;
+    return getEmailWrapper(`Payment Reminder - ${month} ${year}`, htmlContent);
 };

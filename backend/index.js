@@ -67,6 +67,34 @@ app.get('/', (req, res) => {
     res.json({ status: 'Backend is running 🚀' });
 });
 
+// Test email route (for quick verification)
+app.get('/test-email', async (req, res) => {
+    try {
+        const testEmail = req.query.to;
+        if (!testEmail) {
+            return res.status(400).json({ error: 'Please provide ?to=email@example.com' });
+        }
+
+        const { sendEmail } = await import('./utils/emailService.js');
+        
+        await sendEmail({
+            to: testEmail,
+            subject: 'Test Email from Tenancy Tracker ✅',
+            html: `
+                <h1>Test Successful!</h1>
+                <p>If you're seeing this, emails are working!</p>
+                <p>Time: ${new Date().toLocaleString()}</p>
+            `,
+            senderName: 'Tenancy Tracker Test'
+        });
+
+        res.json({ success: true, message: 'Test email sent!' });
+    } catch (error) {
+        console.error('Test email failed:', error);
+        res.status(500).json({ error: error.message, details: error });
+    }
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Server is running' });

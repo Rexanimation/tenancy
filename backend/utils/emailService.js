@@ -3,119 +3,85 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Preconfigure Sahil's SMTP Connection (using nodemailer's built-in Gmail service)
-let transporterSahil = null;
-if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
-    transporterSahil = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.SMTP_USER_SAHIL,
-            pass: process.env.SMTP_PASS_SAHIL,
-        },
-    });
-
-    transporterSahil.verify((error) => {
-        if (error) {
-            console.error('❌ SMTP Sahil Connection Error:', error.message);
-            console.error('❌ SMTP Sahil Error Details:', error);
-        } else {
-            console.log('✅ SMTP Transporter for Sahil loaded and active.');
-        }
-    });
-}
-
-// Preconfigure Nick's SMTP Connection (using nodemailer's built-in Gmail service)
-let transporterNick = null;
-if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
-    transporterNick = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.SMTP_USER_NICK,
-            pass: process.env.SMTP_PASS_NICK,
-        },
-    });
-
-    transporterNick.verify((error) => {
-        if (error) {
-            console.error('❌ SMTP Nick Connection Error:', error.message);
-            console.error('❌ SMTP Nick Error Details:', error);
-        } else {
-            console.log('✅ SMTP Transporter for Nick loaded and active.');
-        }
-    });
-}
-
-// Global warning if neither transporter is loaded
-if (!transporterSahil && !transporterNick) {
-    console.warn('⚠️ Nodemailer SMTP credentials are not configured. Email notifications will fail until configured.');
-}
-
-/**
- * Get all admin emails from ADMIN_EMAILS environment variable
- */
+// Get admin emails
 export const getAdminEmails = () => {
     const adminEmailsStr = process.env.ADMIN_EMAILS || '';
     return adminEmailsStr.split(',').map(email => email.trim()).filter(email => email);
 };
 
-/**
- * Base email dispatch function
- * @param {string} to - Recipient email address(es) (comma-separated or array)
- * @param {string} subject - Email Subject line
- * @param {string} html - Beautiful HTML content
- * @param {string} [text] - Optional plain text fallback
- * @param {string} [adminEmail] - The email of the logged-in admin (Option B)
- * @param {string} [senderName] - Custom admin display name (Option A)
- * @param {Array} [attachments] - Optional array of attachments (nodemailer format)
- */
+// Create a simple, reliable Gmail transporter
+const createTransporter = (user, pass) => {
+    return nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: {
+            user: user,
+            pass: pass,
+        },
+    });
+};
+
+// Initialize transporters
+let transporterSahil = null;
+let transporterNick = null;
+
+if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
+    transporterSahil = createTransporter(process.env.SMTP_USER_SAHIL, process.env.SMTP_PASS_SAHIL);
+    console.log('✅ Sahil transporter initialized');
+}
+
+if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
+    transporterNick = createTransporter(process.env.SMTP_USER_NICK, process.env.SMTP_PASS_NICK);
+    console.log('✅ Nick transporter initialized');
+}
+
+// Main send email function
 export const sendEmail = async ({ to, subject, html, text, adminEmail, senderName, attachments }) => {
     try {
-        let activeTransporter = transporterSahil;
-        let activeUser = process.env.SMTP_USER_SAHIL;
+        // Choose transporter based on adminEmail, or default to first available
+        let transporter = transporterSahil;
+        let fromUser = process.env.SMTP_USER_SAHIL;
 
-        // Dynamic routing based on the acting admin
         if (adminEmail) {
             const emailLower = adminEmail.toLowerCase();
             if (emailLower.includes('nickleister402@gmail.com') && transporterNick) {
-                activeTransporter = transporterNick;
-                activeUser = process.env.SMTP_USER_NICK;
-            } else if (emailLower.includes('rajawatsahil256@gmail.com') && transporterSahil) {
-                activeTransporter = transporterSahil;
-                activeUser = process.env.SMTP_USER_SAHIL;
+                transporter = transporterNick;
+                fromUser = process.env.SMTP_USER_NICK;
             }
         }
 
-        // Fallback check if the chosen admin transporter isn't initialized
-        if (!activeTransporter) {
-            activeTransporter = transporterSahil || transporterNick;
-            activeUser = activeTransporter ? activeTransporter.options.auth.user : null;
+        // Fallback
+        if (!transporter) {
+            transporter = transporterSahil || transporterNick;
+            fromUser = transporter ? (transporter === transporterSahil ? process.env.SMTP_USER_SAHIL : process.env.SMTP_USER_NICK) : null;
         }
 
-        // If still nothing is loaded, throw an error
-        if (!activeTransporter) {
-            console.warn('⚠️ Email transmission skipped: SMTP transporters are not configured.');
+        if (!transporter) {
+            console.warn('⚠️ No email transporter available');
             return null;
         }
 
         const fromHeader = senderName 
-            ? `"${senderName} (via Tenancy Tracker)" <${activeUser}>` 
-            : (process.env.EMAIL_FROM || `"Tenancy Tracker" <${activeUser}>`);
+            ? `"${senderName} (via Tenancy Tracker)" <${fromUser}>` 
+            : (process.env.EMAIL_FROM || `"Tenancy Tracker" <${fromUser}>`);
 
         const mailOptions = {
             from: fromHeader,
             to,
-            replyTo: adminEmail || activeUser,
+            replyTo: adminEmail || fromUser,
             subject,
             html,
-            text: text || 'This email requires an HTML compatible viewer.',
+            text: text || 'This email requires HTML.',
             attachments: attachments || [],
         };
 
-        const info = await activeTransporter.sendMail(mailOptions);
-        console.log(`✉️ Email transmitted successfully via ${activeUser}: ${info.messageId}`);
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✉️ Email sent: ${info.messageId}`);
         return info;
     } catch (error) {
-        console.error('❌ Failed to transmit email:', error.message);
-        throw new Error(`Email transmission failed: ${error.message}`);
+        console.error('❌ Email failed:', error.message);
+        throw error;
     }
 };

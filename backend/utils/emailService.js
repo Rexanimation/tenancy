@@ -3,25 +3,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Preconfigure Sahil's SMTP Connection
+// Preconfigure Sahil's SMTP Connection (using nodemailer's built-in Gmail service)
 let transporterSahil = null;
 if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
     transporterSahil = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        secure: process.env.SMTP_SECURE === 'true',
-        requireTLS: true, // Force TLS for port 587
-        family: 4, // Force IPv4 to fix Render IPv6 issues
+        service: 'gmail',
         auth: {
             user: process.env.SMTP_USER_SAHIL,
             pass: process.env.SMTP_PASS_SAHIL,
         },
-        connectionTimeout: 15000, // 15 second timeout (slightly longer for Render)
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
-        tls: {
-            rejectUnauthorized: false // Accept self-signed certs if needed
-        }
     });
 
     transporterSahil.verify((error) => {
@@ -34,25 +24,15 @@ if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
     });
 }
 
-// Preconfigure Nick's SMTP Connection
+// Preconfigure Nick's SMTP Connection (using nodemailer's built-in Gmail service)
 let transporterNick = null;
 if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
     transporterNick = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        secure: process.env.SMTP_SECURE === 'true',
-        requireTLS: true, // Force TLS for port 587
-        family: 4, // Force IPv4 to fix Render IPv6 issues
+        service: 'gmail',
         auth: {
             user: process.env.SMTP_USER_NICK,
             pass: process.env.SMTP_PASS_NICK,
         },
-        connectionTimeout: 15000, // 15 second timeout (slightly longer for Render)
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
-        tls: {
-            rejectUnauthorized: false // Accept self-signed certs if needed
-        }
     });
 
     transporterNick.verify((error) => {

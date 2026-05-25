@@ -358,3 +358,19 @@ export const getPaymentReminderTemplate = (name, month, year, totalAmount, daysO
     `;
     return getEmailWrapper(`Payment Reminder - ${month} ${year}`, htmlContent);
 };
+
+export const getTenantLoginNotificationTemplate = (name, loginTime) => {
+    const htmlContent = `
+        <h2>Login Successful! 🎉</h2>
+        <p>Dear ${name},</p>
+        <p>You have successfully logged into your Tenancy Tracker account.</p>
+        <div class="info-card">
+            <div class="info-row">
+                <span class="info-label">Login Time:</span>
+                <span class="info-value">${loginTime}</span>
+            </div>
+        </div>
+        <p>If you did not initiate this login, please contact your property administrator immediately.</p>
+    `;
+    return getEmailWrapper('Login Successful - Tenancy Tracker', htmlContent);
+};

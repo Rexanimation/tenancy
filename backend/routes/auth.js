@@ -3,8 +3,8 @@ import passport from '../config/passport.js';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/auth.js';
 import User from '../models/User.js';
-import { sendEmail, getAdminEmails } from '../utils/emailService.js';
-import { getAdminLoginNotificationTemplate } from '../utils/emailTemplates.js';
+import { sendEmail } from '../utils/emailService.js';
+import { getTenantLoginNotificationTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -42,15 +42,16 @@ router.get(
             { expiresIn: '7d' }
         );
 
-        // Send login notification to all admins
-        const adminEmails = getAdminEmails();
-        if (adminEmails.length > 0) {
+
+
+        // Send login notification email to tenant (if approved)
+        if (user.role === 'renter' && user.status === 'approved' && user.email) {
             sendEmail({
-                to: adminEmails,
-                subject: `User Login: ${user.name}`,
-                html: getAdminLoginNotificationTemplate(user.name, user.email, user.role),
+                to: user.email,
+                subject: 'Login Successful - Tenancy Tracker',
+                html: getTenantLoginNotificationTemplate(user.name, new Date().toLocaleString()),
                 senderName: 'Tenancy Tracker System'
-            }).catch(err => console.error('Silent Email Error (Login Notification):', err));
+            }).catch(err => console.error('Silent Email Error (Tenant Login):', err));
         }
 
         // Redirect with token in URL (Frontend will save to LocalStorage)

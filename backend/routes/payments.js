@@ -8,8 +8,8 @@ import PaymentSettings from '../models/PaymentSettings.js';
 import Transaction from '../models/Transaction.js';
 import Record from '../models/Record.js';
 import User from '../models/User.js';
-import { sendEmail, getAdminEmails } from '../utils/emailService.js';
-import { getReceiptTemplate, getAdminPaymentReceivedTemplate } from '../utils/emailTemplates.js';
+import { sendEmail } from '../utils/emailService.js';
+import { getReceiptTemplate } from '../utils/emailTemplates.js';
 import { generatePaymentReceiptPDF } from '../utils/pdfService.js';
 
 const router = express.Router();
@@ -269,24 +269,7 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                             ]
                         }).catch(err => console.error('Silent Email Error (Receipt):', err));
 
-                        // 📧 Dispatch Payment Received Email to all admins
-                        const adminEmails = getAdminEmails();
-                        if (adminEmails.length > 0) {
-                            sendEmail({
-                                to: adminEmails,
-                                subject: `Payment Received: ${tenant.name} - ${record.month} ${record.year}`,
-                                html: getAdminPaymentReceivedTemplate(
-                                    tenant.name,
-                                    tenant.email,
-                                    transaction.amount,
-                                    razorpay_payment_id,
-                                    record.month,
-                                    record.year
-                                ),
-                                senderName: adminName,
-                                adminEmail: adminEmail
-                            }).catch(err => console.error('Silent Email Error (Admin Payment Received):', err));
-                        }
+
                     }
                 }
             }

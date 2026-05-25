@@ -11,13 +11,17 @@ if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
         port: parseInt(process.env.SMTP_PORT || '587', 10),
         secure: process.env.SMTP_SECURE === 'true',
         requireTLS: true, // Force TLS for port 587
+        family: 4, // Force IPv4 to fix Render IPv6 issues
         auth: {
             user: process.env.SMTP_USER_SAHIL,
             pass: process.env.SMTP_PASS_SAHIL,
         },
-        connectionTimeout: 10000, // 10 second timeout
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: 15000, // 15 second timeout (slightly longer for Render)
+        greetingTimeout: 15000,
+        socketTimeout: 15000,
+        tls: {
+            rejectUnauthorized: false // Accept self-signed certs if needed
+        }
     });
 
     transporterSahil.verify((error) => {
@@ -38,13 +42,17 @@ if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
         port: parseInt(process.env.SMTP_PORT || '587', 10),
         secure: process.env.SMTP_SECURE === 'true',
         requireTLS: true, // Force TLS for port 587
+        family: 4, // Force IPv4 to fix Render IPv6 issues
         auth: {
             user: process.env.SMTP_USER_NICK,
             pass: process.env.SMTP_PASS_NICK,
         },
-        connectionTimeout: 10000, // 10 second timeout
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: 15000, // 15 second timeout (slightly longer for Render)
+        greetingTimeout: 15000,
+        socketTimeout: 15000,
+        tls: {
+            rejectUnauthorized: false // Accept self-signed certs if needed
+        }
     });
 
     transporterNick.verify((error) => {

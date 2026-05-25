@@ -2,6 +2,8 @@ import express from 'express';
 import { protect, adminOnly, approvedOnly } from '../middleware/auth.js';
 import Record from '../models/Record.js';
 import User from '../models/User.js';
+import { sendEmail } from '../utils/emailService.js';
+import { getInvoiceTemplate, getReceiptTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -131,6 +133,30 @@ router.post('/', protect, adminOnly, async (req, res) => {
         const savedRecord = await record.save();
         const populatedRecord = await Record.findById(savedRecord._id).populate('tenant', 'name email unit rentAmount');
 
+        // 📧 Dispatch Invoice Email asynchronously
+        if (populatedRecord.tenant && populatedRecord.tenant.email) {
+            sendEmail({
+                to: populatedRecord.tenant.email,
+                subject: `New Rent Invoice: ${month} ${year} 📄`,
+                html: getInvoiceTemplate(
+                    populatedRecord.tenant.name,
+                    month,
+                    year,
+                    {
+                        rent: record.rent,
+                        electricity: record.electricity,
+                        municipalFee: record.municipalFee,
+                        parking: record.parking,
+                        penalties: record.penalties,
+                        dues: record.dues,
+                        advanceCredit: record.advanceCredit
+                    }
+                ),
+                senderName: req.user.name,
+                adminEmail: req.user.email
+            }).catch(err => console.error('Silent Email Error (Invoice):', err));
+        }
+
         res.status(wasUpdated ? 200 : 201).json({
             ...populatedRecord.toObject(),
             message: wasUpdated ? `Bill for ${month} ${year} was updated` : undefined
@@ -220,6 +246,25 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
         await record.save();
 
         const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
+
+        // 📧 Dispatch manual Payment Receipt Email asynchronously (Option A)
+        if (paid && populatedRecord.tenant && populatedRecord.tenant.email) {
+            const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0) - (record.advanceCredit || 0);
+            sendEmail({
+                to: populatedRecord.tenant.email,
+                subject: `Payment Confirmed: Rent for ${record.month} ${record.year} ✅`,
+                html: getReceiptTemplate(
+                    populatedRecord.tenant.name,
+                    billTotal > 0 ? billTotal : 0,
+                    transactionId || 'MANUAL_REF_' + Date.now(),
+                    paymentMethod || 'cash',
+                    record.month,
+                    record.year
+                ),
+                senderName: req.user.name,
+                adminEmail: req.user.email
+            }).catch(err => console.error('Silent Email Error (Manual Receipt):', err));
+        }
 
         res.json(populatedRecord);
     } catch (error) {

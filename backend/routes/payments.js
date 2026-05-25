@@ -7,6 +7,8 @@ import { protect, adminOnly, approvedOnly } from '../middleware/auth.js';
 import PaymentSettings from '../models/PaymentSettings.js';
 import Transaction from '../models/Transaction.js';
 import Record from '../models/Record.js';
+import { sendEmail } from '../utils/emailService.js';
+import { getReceiptTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -225,6 +227,27 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                         }
                         // If difference is 0, no change to balance
                         await tenant.save();
+
+                        // Look up the admin to get their details as sender (Option A)
+                        const adminUser = await User.findOne({ role: 'admin' });
+                        const adminName = adminUser ? adminUser.name : 'Property Manager';
+                        const adminEmail = adminUser ? adminUser.email : undefined;
+
+                        // 📧 Dispatch Payment Receipt Email asynchronously
+                        sendEmail({
+                            to: tenant.email,
+                            subject: `Payment Confirmed: Rent for ${record.month} ${record.year} ✅`,
+                            html: getReceiptTemplate(
+                                tenant.name,
+                                transaction.amount,
+                                razorpay_payment_id,
+                                'razorpay',
+                                record.month,
+                                record.year
+                            ),
+                            senderName: adminName,
+                            adminEmail: adminEmail
+                        }).catch(err => console.error('Silent Email Error (Receipt):', err));
                     }
                 }
             }

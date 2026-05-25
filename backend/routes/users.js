@@ -5,6 +5,8 @@ import path from 'path';
 import { protect, adminOnly } from '../middleware/auth.js';
 import User from '../models/User.js';
 import PaymentSettings from '../models/PaymentSettings.js';
+import { sendEmail } from '../utils/emailService.js';
+import { getApprovalTemplate, getRejectionTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -64,6 +66,15 @@ router.patch('/:id/approve', protect, adminOnly, async (req, res) => {
         user.status = 'approved';
         await user.save();
 
+        // 📧 Dispatch Tenant Approval Email asynchronously
+        sendEmail({
+            to: user.email,
+            subject: 'Account Approved - Tenancy Tracker 🎉',
+            html: getApprovalTemplate(user.name, process.env.FRONTEND_URL || 'https://tenancy-frontend.onrender.com'),
+            senderName: req.user.name,
+            adminEmail: req.user.email
+        }).catch(err => console.error('Silent Email Error (Approval):', err));
+
         res.json({ message: 'Tenant approved successfully', user });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -87,6 +98,15 @@ router.patch('/:id/reject', protect, adminOnly, async (req, res) => {
 
         user.status = 'rejected';
         await user.save();
+
+        // 📧 Dispatch Tenant Rejection Email asynchronously
+        sendEmail({
+            to: user.email,
+            subject: 'Registration Update - Tenancy Tracker',
+            html: getRejectionTemplate(user.name),
+            senderName: req.user.name,
+            adminEmail: req.user.email
+        }).catch(err => console.error('Silent Email Error (Rejection):', err));
 
         res.json({ message: 'Tenant rejected successfully', user });
     } catch (error) {

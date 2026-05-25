@@ -10,15 +10,20 @@ if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '587', 10),
         secure: process.env.SMTP_SECURE === 'true',
+        requireTLS: true, // Force TLS for port 587
         auth: {
             user: process.env.SMTP_USER_SAHIL,
             pass: process.env.SMTP_PASS_SAHIL,
         },
+        connectionTimeout: 10000, // 10 second timeout
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
     });
 
     transporterSahil.verify((error) => {
         if (error) {
             console.error('❌ SMTP Sahil Connection Error:', error.message);
+            console.error('❌ SMTP Sahil Error Details:', error);
         } else {
             console.log('✅ SMTP Transporter for Sahil loaded and active.');
         }
@@ -32,15 +37,20 @@ if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '587', 10),
         secure: process.env.SMTP_SECURE === 'true',
+        requireTLS: true, // Force TLS for port 587
         auth: {
             user: process.env.SMTP_USER_NICK,
             pass: process.env.SMTP_PASS_NICK,
         },
+        connectionTimeout: 10000, // 10 second timeout
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
     });
 
     transporterNick.verify((error) => {
         if (error) {
             console.error('❌ SMTP Nick Connection Error:', error.message);
+            console.error('❌ SMTP Nick Error Details:', error);
         } else {
             console.log('✅ SMTP Transporter for Nick loaded and active.');
         }

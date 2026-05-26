@@ -9,16 +9,24 @@ export const getAdminEmails = () => {
     return adminEmailsStr.split(',').map(email => email.trim()).filter(email => email);
 };
 
-// Create a simple, reliable direct Gmail transporter
+// Create a highly resilient Gmail transporter that works on both local and Render (bypasses IPv6 DNS resolution)
 const createTransporter = (user, pass) => {
+    const isGmail = !process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.gmail.com';
+    const host = isGmail ? '142.251.12.109' : (process.env.SMTP_HOST || 'smtp.gmail.com');
+    const port = Number(process.env.SMTP_PORT) || 587;
+    const secure = process.env.SMTP_SECURE === 'true';
+
     return nodemailer.createTransport({
-        service: 'gmail',
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        host: host,
+        port: port,
+        secure: secure,
+        requireTLS: true,
         auth: {
             user: user,
             pass: pass,
+        },
+        tls: {
+            servername: 'smtp.gmail.com', // Matches Gmail's SSL certificate domain when connecting via direct IP
         },
         connectionTimeout: 15000,
         greetingTimeout: 15000,

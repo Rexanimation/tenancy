@@ -11,20 +11,27 @@ export const getAdminEmails = () => {
 
 // Create a simple, reliable Gmail transporter
 const createTransporter = (user, pass) => {
+    // Force Gmail direct IPv4 address to completely bypass DNS resolution to IPv6 on Render
+    const isGmail = !process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.gmail.com';
+    const host = isGmail ? '142.251.12.109' : (process.env.SMTP_HOST || 'smtp.gmail.com');
+
     return nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        host: host,
         port: Number(process.env.SMTP_PORT) || 587,
         secure: process.env.SMTP_SECURE === "true",
-        family: 4, // Force IPv4 to avoid Gmail connection timeout issues on some platforms
+        requireTLS: true,
         logger: true,
         debug: true,
-        connectionTimeout: 10000, // 10 seconds timeout
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
         auth: {
             user: user,
             pass: pass,
         },
+        tls: {
+            servername: 'smtp.gmail.com', // Required for TLS certificate match when connecting via IP
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
     });
 };
 

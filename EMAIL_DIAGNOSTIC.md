@@ -8,7 +8,7 @@ This report summarizes the current code status of the **Tenancy Tracker** applic
 
 | Component | Status | Notes |
 | :--- | :--- | :--- |
-| **Backend SMTP Transporter** | 🟢 **Resilient & Debug Ready** | Configured with `family: 4`, logging, and network timeouts. |
+| **Backend SMTP Transporter** | 🟢 **Resilient & Debug Ready** | Configured with direct Gmail IPv4 host, TLS servername mapping, logging, and network timeouts. |
 | **Startup Loopback Test** | 🟢 **Operational** | Automatically sends a test email to `SMTP_USER_SAHIL` on server boot to verify SMTP connection. |
 | **Frontend Styling** | 🟢 **Optimized** | Removed redundant Tailwind play CDN script, eliminating console warnings in production. |
 | **Render Environment Variables** | 🟢 **100% Verified** | Audited and verified all SMTP credentials, domain URLs, and client secrets. |
@@ -32,6 +32,7 @@ Connection to 74.125.24.108 failed, trying 2404:6800:4003:c06::6d
   * Modern cloud containers (like Render’s Linux instances) often prioritize resolving domain names to IPv6 addresses when making outgoing network calls.
   * However, Render's free tier networks **do not have outbound IPv6 routing** enabled.
   * When Nodemailer attempted to connect to the IPv6 address returned by DNS, the network blocked the connection immediately, resulting in the `ENETUNREACH` (Network Unreachable) error.
+  * Even with `family: 4`, standard Node.js DNS lookup operations under certain cloud environments could still resolve to IPv6 rotation endpoints.
 
 ### 2. The Socket Hang Problem (Lack of Timeouts)
 * **What happened:**
@@ -44,14 +45,22 @@ Connection to 74.125.24.108 failed, trying 2404:6800:4003:c06::6d
 
 To address both of these issues, the following configurations were written into [backend/utils/emailService.js](file:///c:/Users/Sahil%20Sharma/Desktop/tenancy-tracker/backend/utils/emailService.js):
 
-### 1. Forcing IPv4 (`family: 4`)
-We added the `family: 4` parameter to the transport options:
+### 1. Direct Gmail IPv4 Host Bypass
+We replaced the domain `'smtp.gmail.com'` with Gmail's direct IPv4 address:
 ```javascript
-family: 4 // Forces DNS lookup to resolve using IPv4 only
+host: '142.251.12.109' // Direct Gmail SMTP IPv4 address
 ```
-This forces Nodemailer to bypass Gmail's IPv6 completely and connect directly to the standard IPv4 address, which Render's network routes perfectly.
+This completely bypasses standard DNS resolution, preventing the Node.js/Render environment DNS lookup from resolving to IPv6.
 
-### 2. Resilient Network Timeouts
+### 2. TLS Server Name Mapping (`tls.servername`)
+Because we connect directly via IP, the TLS/SSL handshake requires mapping the target servername back to Gmail's domain to ensure SSL certificate verification matches and remains secure:
+```javascript
+tls: {
+    servername: 'smtp.gmail.com' // Matches Gmail's SSL certificate domain
+}
+```
+
+### 3. Resilient Network Timeouts
 We integrated 10-second boundaries for connection, handshake greeting, and sockets:
 ```javascript
 connectionTimeout: 10000,
@@ -60,7 +69,7 @@ socketTimeout: 10000,
 ```
 This ensures the app immediately terminates and reports connection problems instead of hanging the server process if a network error occurs.
 
-### 3. Comprehensive Logging & Diagnostic Trace
+### 4. Comprehensive Logging & Diagnostic Trace
 Enabled `logger: true` and `debug: true` so that every SMTP command and response between your server and Gmail is fully printed in your Render console logs.
 
 ---

@@ -26,7 +26,13 @@ services:
         generateValue: true
       - key: RAZORPAY_KEY_SECRET
         sync: false
-      - key: RESEND_API_KEY
+      - key: SMTP_USER_SAHIL
+        sync: false
+      - key: SMTP_PASS_SAHIL
+        sync: false
+      - key: SMTP_USER_NICK
+        sync: false
+      - key: SMTP_PASS_NICK
         sync: false
       - key: EMAIL_FROM
         sync: false

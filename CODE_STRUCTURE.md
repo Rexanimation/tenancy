@@ -8,7 +8,7 @@ A full-stack tenancy management application for tracking rent payments, generati
 - **Backend**: Node.js + Express + MongoDB
 - **Auth**: Passport.js (Google OAuth)
 - **Payments**: Razorpay Integration
-- **Email**: Resend (HTTPS API)
+- **Email**: Nodemailer (Gmail SMTP)
 - **PDF**: PDFKit
 - **Deployment**: Render
 
@@ -52,7 +52,7 @@ tenancy-tracker/
 - **`payments.js`**: Payment routes (Razorpay, receipts, PDF download)
 
 ### Utils (`utils/`)
-- **`emailService.js`**: Email sending service (Resend)
+- **`emailService.js`**: Email sending service (Nodemailer)
 - **`emailTemplates.js`**: HTML email templates for all notifications
 - **`pdfService.js`**: PDF receipt generation (PDFKit)
 - **`cronService.js`**: Daily payment reminder cron job (9:00 AM IST)
@@ -131,8 +131,11 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
 RAZORPAY_KEY_ID=your-razorpay-key-id
 RAZORPAY_KEY_SECRET=your-razorpay-key-secret
-RESEND_API_KEY=your-resend-api-key
-EMAIL_FROM=onboarding@resend.dev
+SMTP_USER_SAHIL=your-gmail-address@gmail.com
+SMTP_PASS_SAHIL=your-16-char-app-password
+SMTP_USER_NICK=another-gmail-address@gmail.com
+SMTP_PASS_NICK=their-16-char-app-password
+EMAIL_FROM="Tenancy Tracker" <your-gmail-address@gmail.com>
 ADMIN_EMAILS=admin1@example.com,admin2@example.com
 NODE_ENV=development
 ```

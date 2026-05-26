@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,128 +9,88 @@ export const getAdminEmails = () => {
     return adminEmailsStr.split(',').map(email => email.trim()).filter(email => email);
 };
 
-// Create a simple, reliable Gmail transporter
-const createTransporter = (user, pass) => {
-    // Force Gmail direct IPv4 address to completely bypass DNS resolution to IPv6 on Render
-    const isGmail = !process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.gmail.com';
-    const host = isGmail ? '142.251.12.109' : (process.env.SMTP_HOST || 'smtp.gmail.com');
-
-    return nodemailer.createTransport({
-        host: host,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === "true",
-        requireTLS: true,
-        logger: true,
-        debug: true,
-        auth: {
-            user: user,
-            pass: pass,
-        },
-        tls: {
-            servername: 'smtp.gmail.com', // Required for TLS certificate match when connecting via IP
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-    });
-};
-
-// Initialize transporters
-let transporterSahil = null;
-let transporterNick = null;
-
-if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
-    transporterSahil = createTransporter(process.env.SMTP_USER_SAHIL, process.env.SMTP_PASS_SAHIL);
-    console.log('✅ Sahil transporter initialized');
-
-    // Verify Sahil transporter connection
-    transporterSahil.verify((error, success) => {
-        if (error) {
-            console.error("VERIFY ERROR (Sahil):", error);
-        } else {
-            console.log("SMTP SERVER READY (Sahil)");
-        }
-    });
-
-    // Run test email immediately on startup to self (Sahil)
-    const sendTestEmailSahil = async () => {
-        try {
-            console.log("STARTING TEST EMAIL SEND (Sahil)");
-            const info = await transporterSahil.sendMail({
-                from: `"Tenancy Tracker" <${process.env.SMTP_USER_SAHIL}>`,
-                to: process.env.SMTP_USER_SAHIL,
-                subject: "SMTP Test (Sahil)",
-                text: "Hello from Nodemailer (Sahil Test)",
-            });
-            console.log("TEST EMAIL SENT (Sahil)");
-            console.log(info);
-        } catch (err) {
-            console.error("SEND ERROR (Sahil):");
-            console.error(err);
-        }
-    };
-    sendTestEmailSahil();
-}
-
-if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
-    transporterNick = createTransporter(process.env.SMTP_USER_NICK, process.env.SMTP_PASS_NICK);
-    console.log('✅ Nick transporter initialized');
-
-    // Verify Nick transporter connection
-    transporterNick.verify((error, success) => {
-        if (error) {
-            console.error("VERIFY ERROR (Nick):", error);
-        } else {
-            console.log("SMTP SERVER READY (Nick)");
-        }
-    });
+// Initialize Resend
+let resend = null;
+if (process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+    console.log('✅ Resend email service initialized');
+} else {
+    console.warn('⚠️ RESEND_API_KEY is not defined in environment variables. Email sending will be skipped.');
 }
 
 // Main send email function
 export const sendEmail = async ({ to, subject, html, text, adminEmail, senderName, attachments }) => {
     try {
-        // Choose transporter based on adminEmail, or default to first available
-        let transporter = transporterSahil;
-        let fromUser = process.env.SMTP_USER_SAHIL;
-
-        if (adminEmail) {
-            const emailLower = adminEmail.toLowerCase();
-            if (emailLower.includes('nickleister402@gmail.com') && transporterNick) {
-                transporter = transporterNick;
-                fromUser = process.env.SMTP_USER_NICK;
-            }
-        }
-
-        // Fallback
-        if (!transporter) {
-            transporter = transporterSahil || transporterNick;
-            fromUser = transporter ? (transporter === transporterSahil ? process.env.SMTP_USER_SAHIL : process.env.SMTP_USER_NICK) : null;
-        }
-
-        if (!transporter) {
-            console.warn('⚠️ No email transporter available');
+        if (!resend) {
+            console.warn('⚠️ Resend is not initialized. Skipping email send.');
             return null;
         }
 
-        const fromHeader = senderName 
-            ? `"${senderName} (via Tenancy Tracker)" <${fromUser}>` 
-            : (process.env.EMAIL_FROM || `"Tenancy Tracker" <${fromUser}>`);
+        // Process 'to' list
+        // Resend supports passing an array of emails or a single string email.
+        // We will normalize it to an array of strings. If 'to' is a comma-separated string, split it.
+        let recipients = [];
+        if (Array.isArray(to)) {
+            recipients = to;
+        } else if (typeof to === 'string') {
+            recipients = to.split(',').map(email => email.trim()).filter(email => email);
+        }
 
+        if (recipients.length === 0) {
+            console.warn('⚠️ No recipients specified for email.');
+            return null;
+        }
+
+        // Resend display name formatting.
+        // If EMAIL_FROM is specified (e.g. 'onboarding@resend.dev' or a custom domain), we use it.
+        // Otherwise, default to 'onboarding@resend.dev'.
+        const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+        const fromHeader = senderName 
+            ? `${senderName} <${fromEmail}>` 
+            : `Tenancy Tracker <${fromEmail}>`;
+
+        // Format attachments:
+        // Nodemailer has { filename, content (buffer), contentType }
+        // Resend has { filename, content (buffer) }
+        const resendAttachments = attachments?.map(att => ({
+            filename: att.filename,
+            content: att.content,
+        })) || [];
+
+        // Build Resend request options
         const mailOptions = {
             from: fromHeader,
-            to,
-            replyTo: adminEmail || fromUser,
-            subject,
-            html,
-            text: text || 'This email requires HTML.',
-            attachments: attachments || [],
+            to: recipients,
+            subject: subject || 'Tenancy Tracker Notification',
+            html: html || text || 'This email requires HTML.',
         };
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✉️ Email sent: ${info.messageId}`);
-        return info;
+        if (text) {
+            mailOptions.text = text;
+        }
+
+        if (resendAttachments.length > 0) {
+            mailOptions.attachments = resendAttachments;
+        }
+
+        // Handle Reply-To
+        if (adminEmail) {
+            mailOptions.replyTo = adminEmail;
+        }
+
+        console.log(`✉️ Sending email via Resend to ${recipients.join(', ')}: "${subject}"`);
+        const response = await resend.emails.send(mailOptions);
+
+        if (response.error) {
+            console.error('❌ Resend API Error:', response.error);
+            throw new Error(response.error.message || 'Unknown Resend error');
+        }
+
+        console.log(`✉️ Email sent successfully via Resend. ID: ${response.data?.id}`);
+        return response.data;
     } catch (error) {
-        console.error('❌ Email failed:', error.message);
+        console.error('❌ Resend Email failed:', error.message);
         throw error;
     }
 };
+

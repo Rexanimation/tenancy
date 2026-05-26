@@ -18,6 +18,9 @@ const createTransporter = (user, pass) => {
         family: 4, // Force IPv4 to avoid Gmail connection timeout issues on some platforms
         logger: true,
         debug: true,
+        connectionTimeout: 10000, // 10 seconds timeout
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
         auth: {
             user: user,
             pass: pass,

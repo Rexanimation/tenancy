@@ -1,21 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import useTenancy from './hooks/useTenancy';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
 import RenterDashboard from './components/RenterDashboard';
 import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute
 import PendingApproval from './components/PendingApproval'; // Import PendingApproval
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Privacy from './components/Privacy';
 import Terms from './components/Terms';
 import PublicHome from './components/PublicHome';
+import MoneyCorporateLoader from './components/MoneyCorporateLoader';
 
-// Loading component defined above
-const LoadingSpinner: React.FC = () => (
-  <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-  </div>
-);
+// Legacy Loading component removed in favor of premium MoneyCorporateLoader
 
 function DashboardSwitcher() {
   const {
@@ -87,9 +83,24 @@ function DashboardSwitcher() {
 
 function AppRoutes() {
   const { currentUser, loading, googleSignIn, error, message } = useTenancy();
+  const location = useLocation();
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  if (loading) {
-    return <LoadingSpinner />;
+  useEffect(() => {
+    // Show a premium corporate transition loader on page navigation/redirects
+    setIsNavigating(true);
+    const timer = setTimeout(() => {
+      setIsNavigating(false);
+    }, 750); // Premium transition experience duration
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
+  if (loading || isNavigating) {
+    return (
+      <MoneyCorporateLoader 
+        message={loading ? "Authenticating Session" : "Loading Portal"} 
+      />
+    );
   }
 
   return (

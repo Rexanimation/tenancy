@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import useTenancy from '../hooks/useTenancy';
+import MoneyCorporateLoader from './MoneyCorporateLoader';
 
 interface ProtectedRouteProps {
     children: JSX.Element;
@@ -8,7 +9,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const { currentUser, loading } = useTenancy();
 
-    if (loading) return null; // Or a spinner
+    if (loading) return <MoneyCorporateLoader message="Verifying Credentials" />;
 
     if (!currentUser) {
         return <Navigate to="/login" replace />;

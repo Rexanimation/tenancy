@@ -1,100 +1,104 @@
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
+import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Get admin emails
+/**
+ * Get admin emails list from configuration
+ */
 export const getAdminEmails = () => {
     const adminEmailsStr = process.env.ADMIN_EMAILS || '';
     return adminEmailsStr.split(',').map(email => email.trim()).filter(email => email);
 };
 
-// Create a highly resilient Gmail transporter that works on both local and Render (bypasses IPv6 DNS resolution)
-const createTransporter = (user, pass) => {
-    const isGmail = !process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.gmail.com';
-    const host = isGmail ? '142.251.12.109' : (process.env.SMTP_HOST || 'smtp.gmail.com');
-    const port = Number(process.env.SMTP_PORT) || 587;
-    const secure = process.env.SMTP_SECURE === 'true';
+/**
+ * Log in admin के अनुसार डायनामिक OAuth2 client तैयार करना
+ */
+const getOAuth2Client = async (adminEmail) => {
+    let refreshToken;
 
-    return nodemailer.createTransport({
-        host: host,
-        port: port,
-        secure: secure,
-        requireTLS: true,
-        auth: {
-            user: user,
-            pass: pass,
-        },
-        tls: {
-            servername: 'smtp.gmail.com', // Matches Gmail's SSL certificate domain when connecting via direct IP
-        },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
-    });
+    const emailSahil = process.env.ADMIN_SAHIL_EMAIL || 'rajawatsahil256@gmail.com';
+    const emailNick = process.env.ADMIN_NICK_EMAIL || 'nickleister402@gmail.com';
+
+    const emailSahilLower = emailSahil.toLowerCase();
+    const emailNickLower = emailNick.toLowerCase();
+    const adminEmailLower = adminEmail ? adminEmail.toLowerCase() : '';
+
+    if (adminEmailLower.includes(emailSahilLower)) {
+        refreshToken = process.env.ADMIN_SAHIL_REFRESH_TOKEN;
+        adminEmail = emailSahil;
+    } else if (adminEmailLower.includes(emailNickLower)) {
+        refreshToken = process.env.ADMIN_NICK_REFRESH_TOKEN;
+        adminEmail = emailNick;
+    } else {
+        // क्रॉन जॉब या बैकग्राउंड रिमाइंडर के लिए डिफ़ॉल्ट साहिल का टोकन
+        refreshToken = process.env.ADMIN_SAHIL_REFRESH_TOKEN;
+        adminEmail = emailSahil;
+    }
+
+    if (!refreshToken) {
+        throw new Error(`Refresh token for ${adminEmail} is not configured in your .env file.`);
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        "https://developers.google.com/oauthplayground"
+    );
+
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+    return { oauth2Client, adminEmail };
 };
 
-// Initialize transporters
-let transporterSahil = null;
-let transporterNick = null;
+/**
+ * ईमेल भेजने का मुख्य फ़ंक्शन (संसार के किसी भी यूजर को मेल भेजने के लिए - Gmail HTTP API के साथ)
+ */
+export const sendEmail = async ({ to, subject, html, htmlContent, text, adminEmail, fromAdminEmail, senderName, attachments }) => {
+    const sender = adminEmail || fromAdminEmail || process.env.ADMIN_SAHIL_EMAIL || 'rajawatsahil256@gmail.com';
+    const content = html || htmlContent;
 
-if (process.env.SMTP_USER_SAHIL && process.env.SMTP_PASS_SAHIL) {
-    transporterSahil = createTransporter(process.env.SMTP_USER_SAHIL, process.env.SMTP_PASS_SAHIL);
-    console.log('✅ Sahil Gmail SMTP transporter initialized');
-}
-
-if (process.env.SMTP_USER_NICK && process.env.SMTP_PASS_NICK) {
-    transporterNick = createTransporter(process.env.SMTP_USER_NICK, process.env.SMTP_PASS_NICK);
-    console.log('✅ Nick Gmail SMTP transporter initialized');
-}
-
-// Main send email function
-export const sendEmail = async ({ to, subject, html, text, adminEmail, senderName, attachments }) => {
     try {
-        // Choose transporter based on adminEmail, or default to first available
-        let transporter = transporterSahil;
-        let fromUser = process.env.SMTP_USER_SAHIL;
-
-        if (adminEmail) {
-            const emailLower = adminEmail.toLowerCase();
-            if (emailLower.includes('nickleister402@gmail.com') && transporterNick) {
-                transporter = transporterNick;
-                fromUser = process.env.SMTP_USER_NICK;
-            }
-        }
-
-        // Fallback
-        if (!transporter) {
-            transporter = transporterSahil || transporterNick;
-            fromUser = transporter ? (transporter === transporterSahil ? process.env.SMTP_USER_SAHIL : process.env.SMTP_USER_NICK) : null;
-        }
-
-        if (!transporter) {
-            console.warn('⚠️ No email transporter available');
-            return null;
-        }
+        // 1. Get OAuth2 client for the specified admin
+        const { oauth2Client, adminEmail: finalAdminEmail } = await getOAuth2Client(sender);
 
         const fromHeader = senderName 
-            ? `"${senderName}" <${fromUser}>` 
-            : (process.env.EMAIL_FROM || `"Tenancy Tracker" <${fromUser}>`);
+            ? `"${senderName}" <${finalAdminEmail}>` 
+            : (process.env.EMAIL_FROM || `"Tenancy Tracker" <${finalAdminEmail}>`);
 
-        const mailOptions = {
+        // 2. Compose MIME message using MailComposer
+        const composer = new MailComposer({
             from: fromHeader,
-            to,
-            replyTo: adminEmail || fromUser,
-            subject,
-            html,
+            to: to,
+            replyTo: finalAdminEmail,
+            subject: subject,
+            html: content,
             text: text || 'This email requires HTML.',
-            attachments: attachments || [],
-        };
+            attachments: attachments || []
+        });
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✉️ Email sent: ${info.messageId}`);
-        return info;
+        const compiledMessage = await composer.compile().build();
+
+        // 3. Base64url encode the compiled MIME message
+        const base64SafeMessage = Buffer.from(compiledMessage)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+
+        // 4. Send email using the Gmail REST API (over HTTP)
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+        const res = await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+                raw: base64SafeMessage
+            }
+        });
+
+        console.log(`🟢 Success! Email sent from ${finalAdminEmail} to ${to}. Message ID: ${res.data.id}`);
+        return { success: true, messageId: res.data.id };
     } catch (error) {
-        console.error('❌ Email failed:', error.message);
+        console.error(`🔴 Email delivery failed from ${sender} to ${to}:`, error.message || error);
         throw error;
     }
 };
-
-

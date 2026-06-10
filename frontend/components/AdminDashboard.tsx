@@ -1,4 +1,4 @@
-
+// Build trigger commit to redeploy Admin Dashboard tabs (Security Deposits, Receipts)
 import { useState, useMemo, useEffect } from 'react';
 import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2, Menu, X, Shield, Receipt } from 'lucide-react';
 import { User, RecordType, NewRecordData, Notification, PaymentSettings, ReceiptType } from '../types';

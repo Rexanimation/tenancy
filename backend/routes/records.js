@@ -73,6 +73,24 @@ router.post('/', protect, adminOnly, async (req, res) => {
             return res.status(404).json({ message: 'Tenant not found' });
         }
 
+        // Validate that the bill is being generated only for the current month and year
+        const dateUtc = new Date();
+        const currentYearUtc = dateUtc.getUTCFullYear().toString();
+        const currentMonthUtc = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][dateUtc.getUTCMonth()];
+
+        const indiaDateString = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const indiaDate = new Date(indiaDateString);
+        const currentYearIndia = indiaDate.getFullYear().toString();
+        const currentMonthIndia = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][indiaDate.getMonth()];
+
+        const isCurrentMonth = (month === currentMonthUtc && year === currentYearUtc) || (month === currentMonthIndia && year === currentYearIndia);
+
+        if (!isCurrentMonth) {
+            return res.status(400).json({ 
+                message: `Bills can only be generated for the current month: ${currentMonthIndia} ${currentYearIndia}` 
+            });
+        }
+
         // Create date (first day of the month)
         const date = `${year}-${String(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].indexOf(month) + 1).padStart(2, '0')}-01`;
 

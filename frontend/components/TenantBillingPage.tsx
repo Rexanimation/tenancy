@@ -114,6 +114,14 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
     };
 
     const handleCreateBill = async () => {
+        const currentYear = new Date().getFullYear().toString();
+        const currentMonth = MONTHS[new Date().getMonth()];
+        
+        if (billData.month !== currentMonth || billData.year !== currentYear) {
+            alert(`You can only generate bills for the current month (${currentMonth} ${currentYear}).`);
+            return;
+        }
+
         setIsCreatingBill(true);
         try {
             const recordData: any = {
@@ -311,13 +319,23 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
                     <div className="grid grid-cols-2 gap-4 mb-6">
                         <div>
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Month</label>
-                            <select value={billData.month} onChange={(e) => setBillData(prev => ({ ...prev, month: e.target.value }))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                            <select 
+                                value={billData.month} 
+                                onChange={(e) => setBillData(prev => ({ ...prev, month: e.target.value }))} 
+                                disabled
+                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-100 cursor-not-allowed text-slate-500 font-medium"
+                            >
                                 {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Year</label>
-                            <select value={billData.year} onChange={(e) => setBillData(prev => ({ ...prev, year: e.target.value }))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                            <select 
+                                value={billData.year} 
+                                onChange={(e) => setBillData(prev => ({ ...prev, year: e.target.value }))} 
+                                disabled
+                                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-100 cursor-not-allowed text-slate-500 font-medium"
+                            >
                                 {Array.from({ length: new Date().getFullYear() - 2020 + 3 }, (_, i) => (2020 + i).toString()).map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>

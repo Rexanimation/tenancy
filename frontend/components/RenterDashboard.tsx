@@ -207,7 +207,7 @@ export default function RenterDashboard({ user, records, onLogout, notifications
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-indigo-500">
                 <div>
                   <p className="text-indigo-200 text-xs font-medium mb-1">Passbook Dues</p>
-                  <p className="text-lg font-bold">{formatINR(user.dues || 0)}</p>
+                  <p className="text-lg font-bold">{formatINR(totalDue)}</p>
                 </div>
                 <div>
                   <p className="text-indigo-200 text-xs font-medium mb-1">Advance Credit</p>

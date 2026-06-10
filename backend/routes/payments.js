@@ -121,18 +121,22 @@ router.post('/razorpay/order', protect, approvedOnly, async (req, res) => {
         const record = await Record.findById(recordId).populate('tenant');
 
         if (!record) return res.status(404).json({ message: 'Record not found' });
-        if (record.paid) return res.status(400).json({ message: 'Record already paid' });
+        const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
+        const paidAmount = record.paidAmount || 0;
+        const remainingDue = billTotal - paidAmount;
+
+        if (record.paid && remainingDue <= 0) {
+            return res.status(400).json({ message: 'Record already fully paid' });
+        }
 
         // Check user
         if (req.user.role === 'renter' && record.tenant._id.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Access denied' });
         }
 
-        const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
-
-        // Use custom amount if provided (in rupees), otherwise use full bill total
+        // Use custom amount if provided (in rupees), otherwise use remaining due
         // Ensure amount is valid
-        const paymentAmount = customAmount ? Number(customAmount) : billTotal;
+        const paymentAmount = customAmount ? Number(customAmount) : remainingDue;
         if (paymentAmount <= 0) return res.status(400).json({ message: 'Invalid payment amount' });
 
         const amountInPaisa = Math.round(paymentAmount * 100);
@@ -207,30 +211,41 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                 // Update record and user balance
                 const record = await Record.findById(transaction.record);
                 if (record) {
+                    const oldPaidAmount = record.paidAmount || 0;
+                    const newPaidAmount = oldPaidAmount + transaction.amount;
+
                     record.paid = true;
                     record.paidDate = new Date();
                     record.paymentMethod = 'razorpay';
                     record.transactionId = razorpay_payment_id;
-                    record.paidAmount = transaction.amount; // Store actual paid amount
+                    record.paidAmount = newPaidAmount; // Store accumulated paid amount
                     await record.save();
 
                     // Calculate difference and update user balance
                     const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
-                    const paidAmount = transaction.amount;
-                    const difference = paidAmount - billTotal;
 
                     const User = (await import('../models/User.js')).default;
                     const tenant = await User.findById(record.tenant);
 
                     if (tenant) {
-                        if (difference > 0) {
-                            // Paid more: Add to advance
-                            tenant.advancePaid = (tenant.advancePaid || 0) + difference;
-                        } else if (difference < 0) {
-                            // Paid less: Add difference (absolute value) to dues
-                            tenant.dues = (tenant.dues || 0) + Math.abs(difference);
+                        // 1. Revert the old adjustment if there was one
+                        if (oldPaidAmount > 0) {
+                            const oldDiff = oldPaidAmount - billTotal;
+                            if (oldDiff > 0) {
+                                tenant.advancePaid = Math.max(0, (tenant.advancePaid || 0) - oldDiff);
+                            } else if (oldDiff < 0) {
+                                tenant.dues = Math.max(0, (tenant.dues || 0) - Math.abs(oldDiff));
+                            }
                         }
-                        // If difference is 0, no change to balance
+
+                        // 2. Apply the new adjustment based on the new total paid amount
+                        const newDiff = newPaidAmount - billTotal;
+                        if (newDiff > 0) {
+                            tenant.advancePaid = (tenant.advancePaid || 0) + newDiff;
+                        } else if (newDiff < 0) {
+                            tenant.dues = (tenant.dues || 0) + Math.abs(newDiff);
+                        }
+
                         await tenant.save();
 
                         // Create persistent receipt in DB and emit sockets

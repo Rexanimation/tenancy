@@ -47,7 +47,7 @@ export default function RenterDashboard({ user, records, onLogout, notifications
   const [filterDay, setFilterDay] = useState<string>('');
 
   const latestRecord = records[0];
-  const totalDue = records
+  const totalDue = (user.dues || 0) + records
     .filter((r) => !r.paid)
     .reduce((acc, curr) => acc + curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0), 0);
 
@@ -218,7 +218,7 @@ export default function RenterDashboard({ user, records, onLogout, notifications
 
             <button
               onClick={() => {
-                const unpaidRecord = records.find(r => !r.paid);
+                const unpaidRecord = records.find(r => !r.paid) || records[0];
                 if (unpaidRecord) setPaymentRecord(unpaidRecord);
               }}
               disabled={totalDue === 0}

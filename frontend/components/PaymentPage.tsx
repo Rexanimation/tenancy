@@ -32,10 +32,11 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
     const totalAmount = record.rent + record.electricity + record.parking +
         (record.penalties || 0) + (record.dues || 0) +
         (record.municipalFee || 0);
+    const remainingAmount = Math.max(0, totalAmount - (record.paidAmount || 0));
 
     useEffect(() => {
-        setPayAmount(totalAmount);
-    }, [totalAmount]);
+        setPayAmount(remainingAmount);
+    }, [remainingAmount]);
 
     useEffect(() => {
         const fetchPaymentSettings = async () => {
@@ -195,33 +196,48 @@ export default function PaymentPage({ record, onClose, onPaymentComplete }: Paym
 
                         {/* Amount Summary */}
                         <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl p-6 text-white mb-6">
-                            <p className="text-indigo-100 text-sm mb-2">Total Amount</p>
-                            <h3 className="text-4xl font-bold">{formatINR(totalAmount)}</h3>
-                            <div className="mt-4 space-y-1 text-sm">
+                            <p className="text-indigo-100 text-sm mb-1">Remaining Due</p>
+                            <h3 className="text-4xl font-bold">{formatINR(remainingAmount)}</h3>
+                            <div className="mt-4 space-y-1 text-sm border-t border-indigo-500/30 pt-3">
                                 <div className="flex justify-between">
-                                    <span className="text-indigo-100">Rent:</span>
-                                    <span>{formatINR(record.rent)}</span>
+                                    <span className="text-indigo-100">Total Bill:</span>
+                                    <span>{formatINR(totalAmount)}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-indigo-100">Electricity:</span>
-                                    <span>{formatINR(record.electricity)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-indigo-100">Parking:</span>
-                                    <span>{formatINR(record.parking)}</span>
-                                </div>
-                                {(record.penalties || 0) > 0 && (
+                                {(record.paidAmount || 0) > 0 && (
                                     <div className="flex justify-between">
-                                        <span className="text-indigo-100">Penalties:</span>
-                                        <span>{formatINR(record.penalties || 0)}</span>
+                                        <span className="text-indigo-100">Already Paid:</span>
+                                        <span className="text-green-300 font-medium">-{formatINR(record.paidAmount || 0)}</span>
                                     </div>
                                 )}
-                                {(record.dues || 0) > 0 && (
-                                    <div className="flex justify-between">
-                                        <span className="text-indigo-100">Dues:</span>
-                                        <span>{formatINR(record.dues || 0)}</span>
+                                <div className="border-t border-indigo-500/10 my-2 pt-2">
+                                    <div className="flex justify-between text-xs text-indigo-200 uppercase tracking-wider mb-1">
+                                        <span>Breakdown</span>
                                     </div>
-                                )}
+                                    <div className="flex justify-between text-xs text-indigo-100">
+                                        <span>Rent:</span>
+                                        <span>{formatINR(record.rent)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-indigo-100">
+                                        <span>Electricity:</span>
+                                        <span>{formatINR(record.electricity)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-indigo-100">
+                                        <span>Parking:</span>
+                                        <span>{formatINR(record.parking)}</span>
+                                    </div>
+                                    {(record.penalties || 0) > 0 && (
+                                        <div className="flex justify-between text-xs text-indigo-100">
+                                            <span>Penalties:</span>
+                                            <span className="text-red-200">{formatINR(record.penalties || 0)}</span>
+                                        </div>
+                                    )}
+                                    {(record.dues || 0) > 0 && (
+                                        <div className="flex justify-between text-xs text-indigo-100">
+                                            <span>Dues:</span>
+                                            <span>{formatINR(record.dues || 0)}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

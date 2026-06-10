@@ -213,37 +213,31 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                 if (record) {
                     const oldPaidAmount = record.paidAmount || 0;
                     const newPaidAmount = oldPaidAmount + transaction.amount;
+                    const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
 
-                    record.paid = true;
+                    record.paid = newPaidAmount >= billTotal;
                     record.paidDate = new Date();
                     record.paymentMethod = 'razorpay';
                     record.transactionId = razorpay_payment_id;
                     record.paidAmount = newPaidAmount; // Store accumulated paid amount
                     await record.save();
 
-                    // Calculate difference and update user balance
-                    const billTotal = record.rent + record.electricity + record.parking + (record.penalties || 0) + (record.dues || 0) + (record.municipalFee || 0);
-
                     const User = (await import('../models/User.js')).default;
                     const tenant = await User.findById(record.tenant);
 
                     if (tenant) {
-                        // 1. Revert the old adjustment if there was one
+                        // 1. Revert the old advance adjustment if there was one
                         if (oldPaidAmount > 0) {
                             const oldDiff = oldPaidAmount - billTotal;
                             if (oldDiff > 0) {
                                 tenant.advancePaid = Math.max(0, (tenant.advancePaid || 0) - oldDiff);
-                            } else if (oldDiff < 0) {
-                                tenant.dues = Math.max(0, (tenant.dues || 0) - Math.abs(oldDiff));
                             }
                         }
 
-                        // 2. Apply the new adjustment based on the new total paid amount
+                        // 2. Apply the new advance adjustment based on the new total paid amount
                         const newDiff = newPaidAmount - billTotal;
                         if (newDiff > 0) {
                             tenant.advancePaid = (tenant.advancePaid || 0) + newDiff;
-                        } else if (newDiff < 0) {
-                            tenant.dues = (tenant.dues || 0) + Math.abs(newDiff);
                         }
 
                         await tenant.save();

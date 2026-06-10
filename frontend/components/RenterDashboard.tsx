@@ -48,8 +48,12 @@ export default function RenterDashboard({ user, records, onLogout, notifications
 
   const latestRecord = records[0];
   const totalDue = (user.dues || 0) + records
-    .filter((r) => !r.paid)
-    .reduce((acc, curr) => acc + curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0), 0);
+    .reduce((acc, curr) => {
+      const recordTotal = curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0);
+      const recordPaid = curr.paidAmount || 0;
+      const recordRemaining = Math.max(0, recordTotal - recordPaid);
+      return acc + recordRemaining;
+    }, 0);
 
   const renterNotifications = useMemo(() => notifications.filter(n => n.userId === user._id), [notifications, user._id]);
   const unreadCount = useMemo(() => renterNotifications.filter(n => !n.read).length, [renterNotifications]);

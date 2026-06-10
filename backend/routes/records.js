@@ -236,14 +236,6 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
                 return res.status(400).json({ message: 'Saved fine amount cannot be changed' });
             }
             if (newPenalties !== record.penalties) {
-                const diff = newPenalties - (record.penalties || 0);
-                if (diff > 0 && record.paid) {
-                    const tenant = await User.findById(record.tenant);
-                    if (tenant) {
-                        tenant.dues = (tenant.dues || 0) + diff;
-                        await tenant.save();
-                    }
-                }
                 record.penalties = newPenalties;
             }
         }
@@ -259,12 +251,25 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
         if (paid !== undefined) {
             record.paid = paid;
-            if (paid && !record.paidDate) {
-                record.paidDate = new Date();
-            } else if (!paid) {
+            if (paid) {
+                if (!record.paidDate) record.paidDate = new Date();
+                const billTotal = record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0) - (record.advanceCredit || 0);
+                if (!record.paidAmount || record.paidAmount < billTotal) {
+                    record.paidAmount = billTotal > 0 ? billTotal : 0;
+                }
+            } else {
                 record.paidDate = undefined;
                 record.transactionId = undefined;
                 record.paymentMethod = undefined;
+                record.paidAmount = 0;
+            }
+        } else {
+            // Recalculate paid status based on the updated bill total
+            const billTotal = record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0) - (record.advanceCredit || 0);
+            if ((record.paidAmount || 0) >= billTotal) {
+                record.paid = true;
+            } else {
+                record.paid = false;
             }
         }
 
@@ -284,6 +289,9 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
         const io = req.app.get('socketio');
         if (io) {
             io.emit('record_updated', populatedRecord);
+            if (populatedRecord.tenant) {
+                io.emit('user_updated', populatedRecord.tenant);
+            }
         }
 
         res.json(populatedRecord);

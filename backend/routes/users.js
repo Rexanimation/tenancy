@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { protect, adminOnly } from '../middleware/auth.js';
 import User from '../models/User.js';
 import PaymentSettings from '../models/PaymentSettings.js';
@@ -228,6 +229,23 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
             return res.status(400).json({ message: 'Can only delete renters' });
         }
 
+        // Delete all receipts associated with this tenant and clean up their files on disk
+        const Receipt = mongoose.model('Receipt');
+        const receipts = await Receipt.find({ tenant: req.params.id });
+        for (const r of receipts) {
+            if (r.pdfUrl) {
+                const filepath = path.join(process.cwd(), r.pdfUrl);
+                if (fs.existsSync(filepath)) {
+                    try {
+                        fs.unlinkSync(filepath);
+                    } catch (err) {
+                        console.error('Error deleting receipt PDF file:', err);
+                    }
+                }
+            }
+        }
+        await Receipt.deleteMany({ tenant: req.params.id });
+
         // Delete all records associated with this tenant
         const Record = mongoose.model('Record');
         await Record.deleteMany({ tenant: req.params.id });
@@ -240,7 +258,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
             io.emit('user_deleted', { id: req.params.id });
         }
 
-        res.json({ message: 'Tenant and their records deleted successfully' });
+        res.json({ message: 'Tenant, their records, and receipts deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

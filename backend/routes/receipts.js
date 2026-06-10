@@ -21,7 +21,10 @@ router.get('/', protect, approvedOnly, async (req, res) => {
             .populate('tenant', 'name email unit')
             .populate('record')
             .sort({ createdAt: -1 });
-        res.json(receipts);
+
+        // Filter out receipts where tenant or record has been deleted
+        const validReceipts = receipts.filter(r => r.tenant !== null && r.record !== null);
+        res.json(validReceipts);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

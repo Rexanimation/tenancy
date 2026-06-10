@@ -77,6 +77,17 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [records, filterYear, filterMonth, filterTenant]);
 
+  const filteredReceipts = useMemo(() => {
+    return receipts.filter((r) => {
+      const matchYear = r.record?.year === filterYear;
+      const matchMonth = filterMonth === 'All' || r.record?.month === filterMonth;
+      const matchTenant = filterTenant === 'All' || r.tenant?._id === filterTenant;
+      // Only show receipts for active/approved tenants that exist in the system
+      const tenantExists = tenants.some(t => t._id === r.tenant?._id && t.status === 'approved');
+      return matchYear && matchMonth && matchTenant && tenantExists;
+    });
+  }, [receipts, tenants, filterYear, filterMonth, filterTenant]);
+
   // Revenue calculation based on separate revenue filters
   const revenueFilteredRecords = useMemo(() => {
     return records.filter((r) => {
@@ -179,7 +190,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
       case 'records': return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'tenants': return <TenantsTable tenants={tenants} onApprove={approveTenant} onReject={rejectTenant} onDelete={deleteTenant} onTenantClick={handleTenantClick} />;
       case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} onSaveDeposit={handleSaveSecurityDeposit} />;
-      case 'receipts': return <ReceiptsTable receipts={receipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} />;
+      case 'receipts': return <ReceiptsTable receipts={filteredReceipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'overview':
       default:
         return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;

@@ -227,7 +227,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
       case 'tenants': return <TenantsTable tenants={tenants} onApprove={approveTenant} onReject={rejectTenant} onDelete={deleteTenant} onTenantClick={handleTenantClick} />;
       case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} onSaveDeposit={handleSaveSecurityDeposit} />;
       case 'receipts': return <ReceiptsTable receipts={filteredReceipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} onView={setViewReceiptId} />;
-      case 'late-payments': return <LatePaymentsTable records={records} receipts={receipts} onSaveFine={handleSaveFine} onTenantClick={handleTenantClick} tenants={tenants} />;
+      case 'late-payments': return <LatePaymentsTable records={filteredRecords} receipts={receipts} onSaveFine={handleSaveFine} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'overview':
       default:
         return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;

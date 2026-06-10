@@ -232,7 +232,17 @@ export default function useTenancy() {
       });
     };
 
+    const handleConnect = () => {
+      console.log('⚡ Socket connected successfully:', socket.id);
+    };
+
+    const handleConnectError = (error: any) => {
+      console.error('🔴 Socket connection error:', error);
+    };
+
     // Register events
+    socket.on('connect', handleConnect);
+    socket.on('connect_error', handleConnectError);
     socket.on('record_created', handleRecordCreated);
     socket.on('record_updated', handleRecordUpdated);
     socket.on('record_deleted', handleRecordDeleted);
@@ -243,6 +253,8 @@ export default function useTenancy() {
     // 🟢 Cleanup: Unsubscribe listeners on unmount or user change
     return () => {
       console.log('🔌 Cleaning up socket listeners');
+      socket.off('connect', handleConnect);
+      socket.off('connect_error', handleConnectError);
       socket.off('record_created', handleRecordCreated);
       socket.off('record_updated', handleRecordUpdated);
       socket.off('record_deleted', handleRecordDeleted);
@@ -356,23 +368,27 @@ export default function useTenancy() {
   const refreshRecords = useCallback(async () => {
     try {
       if (currentUser?.role === 'admin') {
-        const [tenantsData, recordsData] = await Promise.all([
+        const [tenantsData, recordsData, receiptsData] = await Promise.all([
           userAPI.getTenants(),
           recordAPI.getRecords(),
+          receiptAPI.getReceipts(),
         ]);
         setUsers(tenantsData);
         setRecords(recordsData);
+        setReceipts(receiptsData);
       } else if (currentUser) {
-        // Fetch fresh user data (to sync dues/advance/profilePic) AND records
-        const [userData, recordsData] = await Promise.all([
+        // Fetch fresh user data (to sync dues/advance/profilePic) AND records AND receipts
+        const [userData, recordsData, receiptsData] = await Promise.all([
           authAPI.getMe(),
-          recordAPI.getTenantRecords(currentUser._id)
+          recordAPI.getTenantRecords(currentUser._id),
+          receiptAPI.getReceipts(),
         ]);
 
         if (userData) {
           setCurrentUser(userData);
         }
         setRecords(recordsData);
+        setReceipts(receiptsData);
       }
     } catch (err: any) {
       console.error('Error refreshing data:', err);

@@ -1,12 +1,13 @@
 // Build trigger commit to redeploy Admin Dashboard tabs (Security Deposits, Receipts)
 import { useState, useMemo, useEffect } from 'react';
-import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2, Menu, X, Shield, Receipt } from 'lucide-react';
+import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2, Menu, X, Shield, Receipt, Eye, Clock } from 'lucide-react';
 import { User, RecordType, NewRecordData, Notification, PaymentSettings, ReceiptType } from '../types';
 import AddRecordModal from './AddRecordModal';
 import PaymentConfirmationModal from './PaymentConfirmationModal';
 import NotificationsPanel from './NotificationsPanel';
 import AdminPaymentSettings from './AdminPaymentSettings';
 import TenantBillingPage from './TenantBillingPage';
+import PaymentReceipt from './PaymentReceipt';
 import { formatINR } from '../utils/currency';
 import { paymentAPI, receiptAPI, userAPI } from '../utils/api';
 
@@ -28,9 +29,10 @@ interface AdminDashboardProps {
   updateTenants: (tenants: User[]) => void;
   notifications: Notification[];
   refreshRecords: () => Promise<void>;
+  markNotificationsAsRead?: () => void;
 }
 
-export default function AdminDashboard({ user, tenants, records, receipts, onAddRecord, onLogout, approveTenant, rejectTenant, deleteTenant, updateRecordStatus, updateTenants, notifications, refreshRecords }: AdminDashboardProps) {
+export default function AdminDashboard({ user, tenants, records, receipts, onAddRecord, onLogout, approveTenant, rejectTenant, deleteTenant, updateRecordStatus, updateRecord, updateTenants, notifications, refreshRecords, markNotificationsAsRead }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -40,6 +42,29 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
   const [selectedTenant, setSelectedTenant] = useState<User | null>(null);
+  const [viewReceiptId, setViewReceiptId] = useState<string | null>(null);
+
+  const handleToggleNotif = () => {
+    setIsNotifPanelOpen(prev => {
+      const next = !prev;
+      if (next && markNotificationsAsRead) {
+        markNotificationsAsRead();
+      }
+      return next;
+    });
+  };
+
+  const handleSaveFine = async (recordId: string, fineAmount: number) => {
+    try {
+      const updated = await updateRecord(recordId, { penalties: fineAmount });
+      if (updated) {
+        await refreshRecords();
+      }
+    } catch (error) {
+      console.error('Failed to save fine:', error);
+      alert('Failed to save fine. Please try again.');
+    }
+  };
 
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
   const [filterMonth, setFilterMonth] = useState('All');
@@ -201,7 +226,8 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
       case 'records': return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'tenants': return <TenantsTable tenants={tenants} onApprove={approveTenant} onReject={rejectTenant} onDelete={deleteTenant} onTenantClick={handleTenantClick} />;
       case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} onSaveDeposit={handleSaveSecurityDeposit} />;
-      case 'receipts': return <ReceiptsTable receipts={filteredReceipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} />;
+      case 'receipts': return <ReceiptsTable receipts={filteredReceipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} onView={setViewReceiptId} />;
+      case 'late-payments': return <LatePaymentsTable records={records} onSaveFine={handleSaveFine} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'overview':
       default:
         return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
@@ -233,7 +259,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
             </button>
           </div>
           <nav className="flex-1 space-y-4">
-            {['overview', 'records', 'tenants', 'security-deposits', 'receipts'].map(tab => (
+            {['overview', 'records', 'tenants', 'security-deposits', 'receipts', 'late-payments'].map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -247,6 +273,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
                 {tab === 'tenants' && <Users className="w-6 h-6" />}
                 {tab === 'security-deposits' && <Shield className="w-6 h-6" />}
                 {tab === 'receipts' && <Receipt className="w-6 h-6" />}
+                {tab === 'late-payments' && <Clock className="w-6 h-6" />}
                 <span className="capitalize">{tab.replace('-', ' ')}</span>
               </button>
             ))}
@@ -269,13 +296,14 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
       <aside className="w-64 bg-slate-900 text-slate-300 flex-shrink-0 hidden md:flex flex-col">
         <div className="p-6"><h2 className="text-xl font-bold text-white flex items-center gap-2"><Home className="text-blue-500" /> AdminPortal</h2></div>
         <nav className="flex-1 px-4 space-y-2">
-          {['overview', 'records', 'tenants', 'security-deposits', 'receipts'].map(tab => (
+          {['overview', 'records', 'tenants', 'security-deposits', 'receipts', 'late-payments'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${activeTab === tab ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>
               {tab === 'overview' && <LayoutDashboard className="w-5 h-5" />}
               {tab === 'records' && <FileText className="w-5 h-5" />}
               {tab === 'tenants' && <Users className="w-5 h-5" />}
               {tab === 'security-deposits' && <Shield className="w-5 h-5" />}
               {tab === 'receipts' && <Receipt className="w-5 h-5" />}
+              {tab === 'late-payments' && <Clock className="w-5 h-5" />}
               <span className="capitalize">{tab.replace('-', ' ')}</span>
             </button>
           ))}
@@ -309,7 +337,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
               <Settings className="w-5 h-5" />
             </button>
             <div className="relative">
-              <button onClick={() => setIsNotifPanelOpen(prev => !prev)} className="relative text-slate-500 hover:text-slate-800 transition-colors">
+              <button onClick={handleToggleNotif} className="relative text-slate-500 hover:text-slate-800 transition-colors">
                 <Bell className="w-6 h-6" />
                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">{unreadCount}</span>}
               </button>
@@ -384,6 +412,12 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
         currentSettings={paymentSettings}
         onUpdate={refreshSettings}
       />
+      {viewReceiptId && (
+        <PaymentReceipt
+          transactionId={viewReceiptId}
+          onClose={() => setViewReceiptId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -605,12 +639,14 @@ const ReceiptsTable = ({
   receipts, 
   onDownload, 
   onTenantClick, 
-  tenants 
+  tenants,
+  onView
 }: { 
   receipts: ReceiptType[], 
   onDownload: (id: string) => void, 
   onTenantClick: (tenant: User) => void, 
-  tenants: User[] 
+  tenants: User[],
+  onView: (id: string) => void
 }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -648,8 +684,31 @@ const ReceiptsTable = ({
                   </td>
                   <td className="px-6 py-4 font-semibold text-green-600">{formatINR(receipt.amount)}</td>
                   <td className="px-6 py-4 uppercase text-xs font-medium text-slate-600">{receipt.paymentMethod}</td>
-                  <td className="px-6 py-4 font-mono text-xs text-slate-500">{receipt.transactionId}</td>
+                  <td className="px-6 py-4 font-mono text-xs">
+                    {receipt.transactionId ? (
+                      <button
+                        onClick={() => onView(receipt._id)}
+                        className="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold text-left"
+                        title="Click to view receipt"
+                      >
+                        {receipt.transactionId}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onView(receipt._id)}
+                        className="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold"
+                      >
+                        View Receipt
+                      </button>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-center">
+                    <button 
+                      onClick={() => onView(receipt._id)} 
+                      className="bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1 mr-2"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
                     <button 
                       onClick={() => onDownload(receipt._id)} 
                       className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
@@ -670,3 +729,167 @@ const ReceiptsTable = ({
     </div>
   );
 };
+
+const LatePaymentsTable = ({
+  records,
+  onSaveFine,
+  onTenantClick,
+  tenants
+}: {
+  records: RecordType[],
+  onSaveFine: (recordId: string, amount: number) => Promise<void>,
+  onTenantClick: (tenant: User) => void,
+  tenants: User[]
+}) => {
+  const [fineAmounts, setFineAmounts] = useState<{[key: string]: string}>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Check if record is late or overdue (due date is the 10th of the billing month)
+  const lateRecords = useMemo(() => {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const today = new Date();
+
+    return records.filter(record => {
+      // Only show records for active tenants
+      const tenantExists = tenants.some(t => t._id === record.tenant?._id && t.status === 'approved');
+      if (!tenantExists) return false;
+
+      const monthIndex = months.indexOf(record.month);
+      const year = parseInt(record.year);
+      if (monthIndex === -1 || isNaN(year)) return false;
+
+      const dueDate = new Date(year, monthIndex, 10, 23, 59, 59);
+
+      if (record.paid) {
+        if (!record.paidDate) return false;
+        // Paid but paid after the 10th
+        return new Date(record.paidDate).getTime() > dueDate.getTime();
+      } else {
+        // Unpaid and current date is after the 10th
+        return today.getTime() > dueDate.getTime();
+      }
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [records, tenants]);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="p-5 border-b border-slate-100">
+        <h3 className="font-bold text-slate-800 text-lg">Late Payments & Fines</h3>
+        <p className="text-xs text-slate-500 mt-1">
+          Lists billing records paid after the 10th of the billing month, or currently unpaid/overdue. Admin can decide and save a penalty fine for each late payment. Once saved, the fine cannot be changed.
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+            <tr>
+              <th className="px-6 py-4">Tenant</th>
+              <th className="px-6 py-4">Billing Period</th>
+              <th className="px-6 py-4">Due Date</th>
+              <th className="px-6 py-4">Paid Date / Status</th>
+              <th className="px-6 py-4">Fine Amount (Penalties)</th>
+              <th className="px-6 py-4 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {lateRecords.length > 0 ? lateRecords.map((record) => {
+              const fullTenant = tenants.find(t => t._id === record.tenant?._id);
+              const hasFine = (record.penalties || 0) > 0;
+              const fineInput = fineAmounts[record._id] ?? (hasFine ? String(record.penalties) : '');
+
+              return (
+                <tr key={record._id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    {fullTenant ? (
+                      <button onClick={() => onTenantClick(fullTenant)} className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-left">
+                        {record.tenant?.name}
+                        <div className="text-xs text-slate-500">Unit {record.tenant?.unit}</div>
+                      </button>
+                    ) : (
+                      <span>{record.tenant?.name || 'Unknown'}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-medium">
+                      {record.month} {record.year}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-slate-600">
+                    {`10th ${record.month.substring(0,3)} ${record.year}`}
+                  </td>
+                  <td className="px-6 py-4">
+                    {record.paid ? (
+                      <div className="text-slate-700">
+                        <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium border border-green-100">Paid Late</span>
+                        {record.paidDate && (
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            Paid on {new Date(record.paidDate).toLocaleDateString('en-IN')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-medium border border-red-100 animate-pulse">Overdue</span>
+                        <div className="text-xs text-slate-500 mt-0.5">Not paid yet</div>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 text-sm">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Enter fine"
+                        disabled={hasFine}
+                        value={fineInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFineAmounts(prev => ({ ...prev, [record._id]: val }));
+                        }}
+                        className={`w-28 border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${hasFine ? 'bg-slate-100 font-bold text-red-600 cursor-not-allowed border-transparent' : 'bg-white'}`}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {hasFine ? (
+                      <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full text-xs font-semibold border border-slate-200">
+                        ✓ Fine Saved
+                      </span>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const amount = parseFloat(fineInput);
+                          if (isNaN(amount) || amount <= 0) {
+                            alert('Please enter a valid fine amount greater than 0.');
+                            return;
+                          }
+                          if (window.confirm(`Are you sure you want to fine this tenant ₹${amount} for late payment? Once saved, this fine cannot be changed.`)) {
+                            setSavingId(record._id);
+                            await onSaveFine(record._id, amount);
+                            setSavingId(null);
+                          }
+                        }}
+                        disabled={savingId === record._id || !fineInput}
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {savingId === record._id ? 'Saving...' : 'Save Fine'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            }) : (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                  No late payments found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+

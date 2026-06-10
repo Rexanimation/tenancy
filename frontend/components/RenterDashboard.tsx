@@ -17,13 +17,24 @@ interface RenterDashboardProps {
   notifications: Notification[];
   onUpdateUser?: (user: User) => void;
   onRefreshRecords?: () => void;
+  markNotificationsAsRead?: () => void;
 }
 
-export default function RenterDashboard({ user, records, onLogout, notifications, onUpdateUser, onRefreshRecords }: RenterDashboardProps) {
+export default function RenterDashboard({ user, records, onLogout, notifications, onUpdateUser, onRefreshRecords, markNotificationsAsRead }: RenterDashboardProps) {
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
   const [paymentRecord, setPaymentRecord] = useState<RecordType | null>(null);
   const [receiptTransactionId, setReceiptTransactionId] = useState<string | null>(null);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+
+  const handleToggleNotif = () => {
+    setIsNotifPanelOpen(prev => {
+      const next = !prev;
+      if (next && markNotificationsAsRead) {
+        markNotificationsAsRead();
+      }
+      return next;
+    });
+  };
 
   // Name edit state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -157,7 +168,7 @@ export default function RenterDashboard({ user, records, onLogout, notifications
           </div>
           <div className="flex items-center gap-4">
             <div className="relative">
-              <button onClick={() => setIsNotifPanelOpen(prev => !prev)} className="relative text-slate-500 hover:text-slate-800 transition-colors">
+              <button onClick={handleToggleNotif} className="relative text-slate-500 hover:text-slate-800 transition-colors">
                 <Bell className="w-6 h-6" />
                 {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">{unreadCount}</span>}
               </button>

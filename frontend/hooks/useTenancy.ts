@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, RecordType, NewRecordData, Notification, ReceiptType } from '../types';
 import { authAPI, userAPI, recordAPI, receiptAPI } from '../utils/api';
 import { io, Socket } from 'socket.io-client';
+import { formatINR } from '../utils/currency';
 
 let socketInstance: Socket | null = null;
 const getSocketInstance = (): Socket => {
@@ -23,7 +24,21 @@ export default function useTenancy() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [receipts, setReceipts] = useState<ReceiptType[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [readNotifIds, setReadNotifIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('read_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(true);
+
+  const markNotificationsAsRead = useCallback(() => {
+    const idsToMark = notifications.map(n => n.id);
+    setReadNotifIds(idsToMark);
+    localStorage.setItem('read_notifications', JSON.stringify(idsToMark));
+  }, [notifications]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -83,14 +98,44 @@ export default function useTenancy() {
     const newNotifications: Notification[] = [];
 
     if (currentUser?.role === 'admin') {
+      // Pending renters awaiting approval
       users.filter(u => u.role === 'renter' && u.status === 'pending').forEach(tenant => {
+        const id = `notif_approve_${tenant._id}`;
         newNotifications.push({
-          id: `notif_approve_${tenant._id}`,
+          id,
           userId: currentUser._id,
           message: `New renter '${tenant.name}' is awaiting approval.`,
           type: 'info',
-          read: false,
-          createdAt: new Date().toISOString(),
+          read: readNotifIds.includes(id),
+          createdAt: tenant.createdAt || new Date().toISOString(),
+        });
+      });
+
+      // Tenant payments/receipts
+      receipts.forEach(receipt => {
+        const id = `notif_receipt_${receipt._id}`;
+        newNotifications.push({
+          id,
+          userId: currentUser._id,
+          message: `${receipt.tenant?.name || 'A tenant'} paid ${formatINR(receipt.amount)} for ${receipt.record?.month} ${receipt.record?.year}.`,
+          type: 'success',
+          read: readNotifIds.includes(id),
+          createdAt: receipt.createdAt || new Date().toISOString(),
+        });
+      });
+    }
+
+    if (currentUser?.role === 'renter') {
+      // Renter payment confirmations
+      receipts.filter(r => r.tenant?._id === currentUser._id).forEach(receipt => {
+        const id = `notif_renter_receipt_${receipt._id}`;
+        newNotifications.push({
+          id,
+          userId: currentUser._id,
+          message: `Your payment of ${formatINR(receipt.amount)} for ${receipt.record?.month} ${receipt.record?.year} is confirmed.`,
+          type: 'success',
+          read: readNotifIds.includes(id),
+          createdAt: receipt.createdAt || new Date().toISOString(),
         });
       });
     }
@@ -103,32 +148,35 @@ export default function useTenancy() {
 
       if (dayDiff < 0) {
         if (currentUser?.role === 'admin') {
+          const id = `notif_admin_overdue_${record._id}`;
           newNotifications.push({
-            id: `notif_admin_overdue_${record._id}`,
+            id,
             userId: currentUser._id,
             message: `${record.tenant?.name || 'Unknown'}'s ${record.month} rent is overdue.`,
             type: 'warning',
-            read: false,
+            read: readNotifIds.includes(id),
             createdAt: new Date().toISOString(),
           });
         }
         if (currentUser?._id === record.tenant?._id) {
+          const id = `notif_renter_overdue_${record._id}`;
           newNotifications.push({
-            id: `notif_renter_overdue_${record._id}`,
+            id,
             userId: currentUser._id,
             message: `Your ${record.month} rent is overdue. Please pay soon.`,
             type: 'warning',
-            read: false,
+            read: readNotifIds.includes(id),
             createdAt: new Date().toISOString(),
           });
         }
       } else if (dayDiff <= 7 && currentUser?._id === record.tenant?._id) {
+        const id = `notif_renter_due_${record._id}`;
         newNotifications.push({
-          id: `notif_renter_due_${record._id}`,
+          id,
           userId: currentUser._id,
           message: `Your ${record.month} rent is due in ${dayDiff} days.`,
           type: 'info',
-          read: false,
+          read: readNotifIds.includes(id),
           createdAt: new Date().toISOString(),
         });
       }
@@ -137,7 +185,7 @@ export default function useTenancy() {
     setNotifications(newNotifications.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     ));
-  }, [currentUser, users, records]);
+  }, [currentUser, users, records, receipts, readNotifIds]);
 
   const googleSignIn = useCallback(async () => {
     try {
@@ -423,5 +471,6 @@ export default function useTenancy() {
     updateTenants,
     notifications,
     refreshRecords,
+    markNotificationsAsRead,
   };
 }

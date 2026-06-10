@@ -29,6 +29,7 @@ function DashboardSwitcher() {
     updateTenants,
     notifications,
     refreshRecords,
+    markNotificationsAsRead,
   } = useTenancy();
 
   // Pending/Rejected checks are now handled in ProtectedRoute, which redirects to /pending-approval
@@ -52,6 +53,7 @@ function DashboardSwitcher() {
         updateTenants={updateTenants}
         notifications={notifications}
         refreshRecords={refreshRecords}
+        markNotificationsAsRead={markNotificationsAsRead}
       />
     );
   }
@@ -71,6 +73,7 @@ function DashboardSwitcher() {
         onLogout={logout}
         notifications={notifications}
         onRefreshRecords={refreshRecords}
+        markNotificationsAsRead={markNotificationsAsRead}
         onUpdateUser={(_updatedUser) => {
           // We can let the refreshRecords handle it, or keep this as empty/fallback
         }}

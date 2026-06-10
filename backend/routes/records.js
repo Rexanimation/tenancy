@@ -230,7 +230,23 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
         if (electricityRate !== undefined) record.electricityRate = Number(electricityRate);
         if (municipalFee !== undefined) record.municipalFee = Number(municipalFee);
         if (parking !== undefined) record.parking = Number(parking);
-        if (penalties !== undefined) record.penalties = Number(penalties);
+        if (penalties !== undefined) {
+            const newPenalties = Number(penalties);
+            if (record.penalties > 0 && newPenalties !== record.penalties) {
+                return res.status(400).json({ message: 'Saved fine amount cannot be changed' });
+            }
+            if (newPenalties !== record.penalties) {
+                const diff = newPenalties - (record.penalties || 0);
+                if (diff > 0 && record.paid) {
+                    const tenant = await User.findById(record.tenant);
+                    if (tenant) {
+                        tenant.dues = (tenant.dues || 0) + diff;
+                        await tenant.save();
+                    }
+                }
+                record.penalties = newPenalties;
+            }
+        }
         if (dues !== undefined) record.dues = Number(dues);
         if (advanceCredit !== undefined) record.advanceCredit = Number(advanceCredit);
 

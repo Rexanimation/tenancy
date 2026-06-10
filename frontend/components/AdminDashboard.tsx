@@ -100,7 +100,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
       const tenantExists = tenants.some(t => t._id === r.tenant?._id);
       return matchYear && matchMonth && matchTenant && tenantExists;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [records, filterYear, filterMonth, filterTenant]);
+  }, [records, tenants, filterYear, filterMonth, filterTenant]);
 
   const filteredReceipts = useMemo(() => {
     return receipts.filter((r) => {

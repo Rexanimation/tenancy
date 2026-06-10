@@ -8,7 +8,7 @@ import NotificationsPanel from './NotificationsPanel';
 import AdminPaymentSettings from './AdminPaymentSettings';
 import TenantBillingPage from './TenantBillingPage';
 import { formatINR } from '../utils/currency';
-import { paymentAPI, receiptAPI } from '../utils/api';
+import { paymentAPI, receiptAPI, userAPI } from '../utils/api';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 3 }, (_, i) => (2020 + i).toString());
@@ -162,11 +162,23 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
     }
   };
 
+  const handleSaveSecurityDeposit = async (tenantId: string, depositAmount: number) => {
+    try {
+      const response = await userAPI.updateProfile(tenantId, { securityDeposit: depositAmount });
+      const updatedTenant = response.user;
+      const newTenants = tenants.map(t => t._id === updatedTenant._id ? updatedTenant : t);
+      updateTenants(newTenants);
+    } catch (error) {
+      console.error('Failed to save security deposit:', error);
+      alert('Failed to save security deposit. Please try again.');
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'records': return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'tenants': return <TenantsTable tenants={tenants} onApprove={approveTenant} onReject={rejectTenant} onDelete={deleteTenant} onTenantClick={handleTenantClick} />;
-      case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} />;
+      case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} onSaveDeposit={handleSaveSecurityDeposit} />;
       case 'receipts': return <ReceiptsTable receipts={receipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'overview':
       default:
@@ -480,8 +492,17 @@ const TenantsTable = ({ tenants, onApprove, onReject, onDelete, onTenantClick }:
   </div>
 );
 
-const SecurityDepositsTable = ({ tenants, onTenantClick }: { tenants: User[], onTenantClick: (tenant: User) => void }) => {
+const SecurityDepositsTable = ({ 
+  tenants, 
+  onTenantClick,
+  onSaveDeposit
+}: { 
+  tenants: User[], 
+  onTenantClick: (tenant: User) => void,
+  onSaveDeposit: (tenantId: string, deposit: number) => Promise<void>
+}) => {
   const activeTenants = tenants.filter(t => t.status === 'approved');
+  const [inputValues, setInputValues] = useState<{[key: string]: string}>({});
   
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -496,21 +517,57 @@ const SecurityDepositsTable = ({ tenants, onTenantClick }: { tenants: User[], on
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {activeTenants.length > 0 ? activeTenants.map((tenant) => (
-              <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-medium text-slate-900">
-                  <button onClick={() => onTenantClick(tenant)} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-                    {tenant.name}
-                  </button>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-slate-600">{tenant.email}</div>
-                  <div className="text-xs text-slate-500">Unit {tenant.unit}</div>
-                </td>
-                <td className="px-6 py-4 font-semibold text-slate-800">{formatINR(tenant.rentAmount || 0)}</td>
-                <td className="px-6 py-4 font-bold text-amber-600">{formatINR(tenant.securityDeposit || 0)}</td>
-              </tr>
-            )) : (
+            {activeTenants.length > 0 ? activeTenants.map((tenant) => {
+              const deposit = tenant.securityDeposit || 0;
+              const hasDeposit = deposit > 0;
+              return (
+                <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    <button onClick={() => onTenantClick(tenant)} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                      {tenant.name}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-slate-600">{tenant.email}</div>
+                    <div className="text-xs text-slate-500">Unit {tenant.unit}</div>
+                  </td>
+                  <td className="px-6 py-4 font-semibold text-slate-800">{formatINR(tenant.rentAmount || 0)}</td>
+                  <td className="px-6 py-4">
+                    {hasDeposit ? (
+                      <span className="font-bold text-amber-600">{formatINR(deposit)}</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          placeholder="Enter deposit"
+                          value={inputValues[tenant._id] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setInputValues(prev => ({ ...prev, [tenant._id]: val }));
+                          }}
+                          className="w-28 border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        />
+                        <button 
+                          onClick={async () => {
+                            const val = inputValues[tenant._id];
+                            if (!val || Number(val) <= 0) {
+                              alert('Please enter a valid deposit amount greater than 0');
+                              return;
+                            }
+                            if (window.confirm(`Are you sure you want to record ₹${val} as the security deposit for ${tenant.name}? Once recorded, this deposit cannot be changed.`)) {
+                              await onSaveDeposit(tenant._id, Number(val));
+                            }
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            }) : (
               <tr>
                 <td colSpan={4} className="px-6 py-8 text-center text-slate-500">No active tenants found.</td>
               </tr>

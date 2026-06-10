@@ -283,7 +283,15 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
                         <div>
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Security Deposit</label>
                             {isEditingSettings ? (
-                                <input type="number" value={settings.securityDeposit} onChange={(e) => setSettings(prev => ({ ...prev, securityDeposit: Number(e.target.value) }))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                                <input 
+                                    type="number" 
+                                    value={settings.securityDeposit} 
+                                    onChange={(e) => setSettings(prev => ({ ...prev, securityDeposit: Number(e.target.value) }))} 
+                                    disabled={(tenant.securityDeposit || 0) > 0}
+                                    className={`w-full border border-slate-300 rounded-lg px-3 py-2 text-sm ${
+                                        (tenant.securityDeposit || 0) > 0 ? 'bg-slate-100 cursor-not-allowed text-slate-500 font-medium' : ''
+                                    }`}
+                                />
                             ) : (
                                 <p className="font-semibold text-amber-600">{formatINR(tenant.securityDeposit || 0)}</p>
                             )}

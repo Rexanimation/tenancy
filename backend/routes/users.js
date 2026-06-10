@@ -158,9 +158,14 @@ router.patch('/:id', protect, async (req, res) => {
 
         let sendDepositEmail = false;
         if (securityDeposit !== undefined && req.user.role === 'admin') {
-            if (user.securityDeposit !== Number(securityDeposit)) {
-                user.securityDeposit = Number(securityDeposit);
-                sendDepositEmail = true;
+            const nextDeposit = Number(securityDeposit);
+            if ((user.securityDeposit || 0) === 0 || user.securityDeposit === nextDeposit) {
+                if (user.securityDeposit !== nextDeposit) {
+                    user.securityDeposit = nextDeposit;
+                    sendDepositEmail = true;
+                }
+            } else {
+                return res.status(400).json({ message: 'Security deposit has already been set and cannot be changed' });
             }
         }
 

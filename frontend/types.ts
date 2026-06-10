@@ -23,6 +23,8 @@ export interface User {
   city?: string;
   locality?: string;
   securityDeposit?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RecordType {

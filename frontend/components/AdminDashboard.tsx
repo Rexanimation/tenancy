@@ -99,15 +99,26 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
     });
   }, [records, revenueYear, revenueMonth, tenants]);
 
-  const totalRevenue = revenueFilteredRecords.reduce((acc, curr) => {
-    // Determine the total paid amount for this record.
-    // If it's fully paid (r.paid), user might not have `paidAmount` stored if they paid via old method,
-    // so fallback to the total bill amount. 
-    // If it's partially paid, `paidAmount` should hold the value.
-    const totalBill = curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0) - (curr.advanceCredit || 0);
-    const paidSum = curr.paidAmount !== undefined ? curr.paidAmount : (curr.paid ? totalBill : 0);
-    return acc + paidSum;
-  }, 0);
+  const totalRevenue = useMemo(() => {
+    const recordsSum = revenueFilteredRecords.reduce((acc, curr) => {
+      const totalBill = curr.rent + curr.electricity + curr.parking + (curr.municipalFee || 0) + (curr.penalties || 0) + (curr.dues || 0) - (curr.advanceCredit || 0);
+      const paidSum = curr.paidAmount !== undefined ? curr.paidAmount : (curr.paid ? totalBill : 0);
+      return acc + paidSum;
+    }, 0);
+
+    const securityDepositsSum = tenants
+      .filter(t => t.status === 'approved' && t.securityDeposit && t.securityDeposit > 0)
+      .filter(t => {
+        if (!t.createdAt) return true;
+        const createdDate = new Date(t.createdAt);
+        const matchYear = createdDate.getFullYear().toString() === revenueYear;
+        const matchMonth = revenueMonth === 'All' || MONTHS[createdDate.getMonth()] === revenueMonth;
+        return matchYear && matchMonth;
+      })
+      .reduce((acc, curr) => acc + (curr.securityDeposit || 0), 0);
+
+    return recordsSum + securityDepositsSum;
+  }, [revenueFilteredRecords, tenants, revenueYear, revenueMonth]);
 
   const pendingCount = filteredRecords.filter((r) => !r.paid).length;
 

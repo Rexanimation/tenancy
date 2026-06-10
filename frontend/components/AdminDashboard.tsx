@@ -473,14 +473,32 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
               <td className="px-6 py-4">
                 <div className="flex flex-col">
                   <span className="font-bold text-slate-800">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</span>
-                  {record.paid && (
-                    <span className="text-xs font-semibold text-green-600">Paid: {formatINR(record.paidAmount || (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0)))}</span>
+                  {(record.paidAmount || 0) > 0 && (
+                    <span className="text-xs font-semibold text-green-600">Paid: {formatINR(record.paidAmount)}</span>
                   )}
                 </div>
               </td>
               <td className="px-6 py-4 text-center">
-                {record.paid ? <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium border border-green-100"><CheckCircle className="w-3 h-3" /> Paid</span> :
-                  <button onClick={() => onMarkAsPaid(record)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold px-3 py-1 rounded-full transition-colors">Mark as Paid</button>}
+                {record.paid ? (
+                  <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium border border-green-100">
+                    <CheckCircle className="w-3 h-3" /> Paid
+                  </span>
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5">
+                    {(record.paidAmount || 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full text-xs font-medium border border-orange-100">
+                        Partial
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full text-xs font-medium border border-red-100">
+                        Unpaid
+                      </span>
+                    )}
+                    <button onClick={() => onMarkAsPaid(record)} className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold px-3 py-1 rounded-full transition-colors">
+                      Mark as Paid
+                    </button>
+                  </div>
+                )}
               </td>
             </tr>
           );

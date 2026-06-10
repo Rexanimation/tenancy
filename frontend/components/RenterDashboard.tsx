@@ -1,6 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera, Edit2, Check, X } from 'lucide-react';
+import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera, Edit2, Check, X, Clock } from 'lucide-react';
 import { User, RecordType, Notification } from '../types';
 import NotificationsPanel from './NotificationsPanel';
 import PaymentPage from './PaymentPage';
@@ -228,37 +228,63 @@ export default function RenterDashboard({ user, records, onLogout, notifications
             </button>
           </div>
 
-          {latestRecord && (
-            <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-3">Latest Bill ({latestRecord.month} {latestRecord.year})</p>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2"><Home className="w-4 h-4" /> Rent</span><span className="font-semibold">{formatINR(latestRecord.rent)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2"><Zap className="w-4 h-4" /> Electricity</span><span className="font-semibold">{formatINR(latestRecord.electricity)}</span></div>
-                {(latestRecord.municipalFee || 0) > 0 && (
-                  <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2">🏛️ Municipal Fee</span><span className="font-semibold">{formatINR(latestRecord.municipalFee || 0)}</span></div>
-                )}
-                <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2"><Car className="w-4 h-4" /> Parking</span><span className="font-semibold">{formatINR(latestRecord.parking)}</span></div>
-                {(latestRecord.penalties || 0) > 0 && (
-                  <div className="flex justify-between text-sm"><span className="text-red-600 flex items-center gap-2">⚠️ Penalties</span><span className="font-semibold text-red-600">{formatINR(latestRecord.penalties || 0)}</span></div>
-                )}
-                {(latestRecord.dues || 0) > 0 && (
-                  <div className="flex justify-between text-sm"><span className="text-orange-600 flex items-center gap-2">₹ Dues</span><span className="font-semibold text-orange-600">{formatINR(latestRecord.dues || 0)}</span></div>
-                )}
-                <div className="border-t pt-3 mt-2 font-bold text-slate-800">
-                  <div className="flex justify-between items-center text-lg">
-                    <span>Total Bill</span>
-                    <span>{formatINR(latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0))}</span>
+          {latestRecord && (() => {
+            const latestBillTotal = latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0);
+            const latestPaidAmount = latestRecord.paidAmount || 0;
+            const latestRemainingDue = Math.max(0, latestBillTotal - latestPaidAmount);
+            const isFullyPaid = latestRemainingDue === 0;
+
+            return (
+              <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-slate-500 text-sm font-medium">Latest Bill ({latestRecord.month} {latestRecord.year})</p>
+                  <div>
+                    {isFullyPaid ? (
+                      <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-green-100">
+                        Paid
+                      </span>
+                    ) : latestPaidAmount > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-orange-100 animate-pulse">
+                        Partially Paid
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-red-100 animate-pulse">
+                        Unpaid
+                      </span>
+                    )}
                   </div>
-                  {latestRecord.paid && (
-                    <div className="flex justify-between items-center text-sm font-medium text-green-600 mt-1">
-                      <span>Paid Amount</span>
-                      <span>{formatINR(latestRecord.paidAmount || (latestRecord.rent + latestRecord.electricity + latestRecord.parking + (latestRecord.municipalFee || 0) + (latestRecord.penalties || 0) + (latestRecord.dues || 0)))}</span>
-                    </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2"><Home className="w-4 h-4" /> Rent</span><span className="font-semibold">{formatINR(latestRecord.rent)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2"><Zap className="w-4 h-4" /> Electricity</span><span className="font-semibold">{formatINR(latestRecord.electricity)}</span></div>
+                  {(latestRecord.municipalFee || 0) > 0 && (
+                    <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2">🏛️ Municipal Fee</span><span className="font-semibold">{formatINR(latestRecord.municipalFee || 0)}</span></div>
                   )}
+                  <div className="flex justify-between text-sm"><span className="text-slate-600 flex items-center gap-2"><Car className="w-4 h-4" /> Parking</span><span className="font-semibold">{formatINR(latestRecord.parking)}</span></div>
+                  {(latestRecord.penalties || 0) > 0 && (
+                    <div className="flex justify-between text-sm"><span className="text-red-600 flex items-center gap-2">⚠️ Penalties</span><span className="font-semibold text-red-600">{formatINR(latestRecord.penalties || 0)}</span></div>
+                  )}
+                  {(latestRecord.dues || 0) > 0 && (
+                    <div className="flex justify-between text-sm"><span className="text-orange-600 flex items-center gap-2">₹ Dues</span><span className="font-semibold text-orange-600">{formatINR(latestRecord.dues || 0)}</span></div>
+                  )}
+                  <div className="border-t pt-3 mt-2 font-bold text-slate-800 space-y-1">
+                    <div className="flex justify-between items-center text-lg">
+                      <span>Total Bill</span>
+                      <span>{formatINR(latestBillTotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-medium text-green-600">
+                      <span>Paid Amount</span>
+                      <span>{formatINR(latestPaidAmount)}</span>
+                    </div>
+                    <div className={`flex justify-between items-center text-sm font-medium ${latestRemainingDue > 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                      <span>Remaining Due</span>
+                      <span>{formatINR(latestRemainingDue)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         <div>
@@ -319,28 +345,57 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                       </div>
                     </div>
                     <div className="text-right flex items-center gap-4">
-                      <div className="flex flex-col items-end">
-                        <p className="font-bold text-slate-800 text-lg">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</p>
-                        {record.paid && (
-                          <p className="text-xs font-semibold text-green-600">Paid: {formatINR(record.paidAmount || (record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0)))}</p>
-                        )}
+                      <div className="flex flex-col items-end text-sm">
+                        {(() => {
+                          const recordBillTotal = record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0);
+                          const recordPaidAmount = record.paidAmount || 0;
+                          const recordRemainingDue = Math.max(0, recordBillTotal - recordPaidAmount);
+                          const recordIsFullyPaid = recordRemainingDue === 0;
+
+                          return (
+                            <>
+                              <p className="font-bold text-slate-800 text-lg">Total: {formatINR(recordBillTotal)}</p>
+                              <p className="text-xs text-green-600 font-semibold">Paid: {formatINR(recordPaidAmount)}</p>
+                              <p className={`text-xs font-semibold ${recordRemainingDue > 0 ? 'text-red-500' : 'text-slate-500'}`}>
+                                Dues: {formatINR(recordRemainingDue)}
+                              </p>
+                            </>
+                          );
+                        })()}
                       </div>
-                      {record.paid ? (
-                        <>
-                          <span className="inline-flex items-center gap-1.5 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-medium border border-green-100"><CheckCircle className="w-3.5 h-3.5" /> Paid</span>
-                          {record.transactionId && (
-                            <button
-                              onClick={() => setReceiptTransactionId(record.transactionId!)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                              title="View Receipt"
-                            >
-                              <Receipt className="w-4 h-4" />
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-xs font-medium border border-red-100"><XCircle className="w-3.5 h-3.5" /> Pending</span>
-                      )}
+                      {(() => {
+                        const recordBillTotal = record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0);
+                        const recordPaidAmount = record.paidAmount || 0;
+                        const recordRemainingDue = Math.max(0, recordBillTotal - recordPaidAmount);
+                        const recordIsFullyPaid = recordRemainingDue === 0;
+
+                        return (
+                          <div className="flex items-center gap-2">
+                            {recordIsFullyPaid ? (
+                              <span className="inline-flex items-center gap-1.5 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-medium border border-green-100">
+                                <CheckCircle className="w-3.5 h-3.5" /> Paid
+                              </span>
+                            ) : recordPaidAmount > 0 ? (
+                              <span className="inline-flex items-center gap-1.5 text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full text-xs font-medium border border-orange-100 animate-pulse">
+                                <Clock className="w-3.5 h-3.5" /> Partial
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-xs font-medium border border-red-100 animate-pulse">
+                                <XCircle className="w-3.5 h-3.5" /> Pending
+                              </span>
+                            )}
+                            {record.transactionId && (
+                              <button
+                                onClick={() => setReceiptTransactionId(record.transactionId!)}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                title="View Receipt"
+                              >
+                                <Receipt className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}

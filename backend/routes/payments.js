@@ -12,6 +12,8 @@ import { sendEmail } from '../utils/emailService.js';
 import { getReceiptTemplate } from '../utils/emailTemplates.js';
 import { generatePaymentReceiptPDF } from '../utils/pdfService.js';
 import { createReceipt } from '../utils/receiptManager.js';
+import Receipt from '../models/Receipt.js';
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -323,17 +325,66 @@ router.get('/transactions', protect, approvedOnly, async (req, res) => {
 // @access  Private
 router.get('/receipt/:id', protect, approvedOnly, async (req, res) => {
     try {
-        const transaction = await Transaction.findById(req.params.id)
-            .populate('tenant', 'name email unit')
-            .populate('record');
+        let transaction = null;
+        let isReceiptModel = false;
+
+        // Try searching in Receipt model first
+        if (/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+            transaction = await Receipt.findById(req.params.id)
+                .populate('tenant', 'name email unit')
+                .populate('record');
+        }
+
+        if (!transaction) {
+            transaction = await Receipt.findOne({ transactionId: req.params.id })
+                .populate('tenant', 'name email unit')
+                .populate('record');
+        }
+
+        if (transaction) {
+            isReceiptModel = true;
+        }
+
+        // If not found in Receipt model, fall back to Transaction model
+        if (!transaction) {
+            if (/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+                transaction = await Transaction.findById(req.params.id)
+                    .populate('tenant', 'name email unit')
+                    .populate('record');
+            }
+        }
+
+        if (!transaction) {
+            transaction = await Transaction.findOne({ transactionId: req.params.id })
+                .populate('tenant', 'name email unit')
+                .populate('record');
+        }
 
         if (!transaction) {
             return res.status(404).json({ message: 'Receipt not found' });
         }
 
         // Check ownership for renters
-        if (req.user.role === 'renter' && transaction.tenant._id.toString() !== req.user._id.toString()) {
+        const tenantId = isReceiptModel ? transaction.tenant._id.toString() : transaction.tenant._id.toString();
+        if (req.user.role === 'renter' && tenantId !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Access denied' });
+        }
+
+        // If it's from the Receipt model, convert/adapt it to look like a Transaction for frontend compatibility
+        if (isReceiptModel) {
+            const adaptedTransaction = {
+                _id: transaction._id,
+                tenant: transaction.tenant,
+                record: transaction.record,
+                amount: transaction.amount,
+                paymentMethod: transaction.paymentMethod,
+                transactionId: transaction.transactionId,
+                status: 'verified',
+                verifiedAt: transaction.paidDate || transaction.createdAt,
+                createdAt: transaction.createdAt,
+                notes: 'Payment verified successfully'
+            };
+            return res.json(adaptedTransaction);
         }
 
         res.json(transaction);
@@ -347,23 +398,65 @@ router.get('/receipt/:id', protect, approvedOnly, async (req, res) => {
 // @access  Private
 router.get('/receipt/:id/pdf', protect, approvedOnly, async (req, res) => {
     try {
-        const transaction = await Transaction.findById(req.params.id)
-            .populate('tenant', 'name email unit')
-            .populate('record');
+        let transaction = null;
+        let isReceiptModel = false;
+
+        // Try searching in Receipt model first
+        if (/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+            transaction = await Receipt.findById(req.params.id)
+                .populate('tenant', 'name email unit')
+                .populate('record');
+        }
+
+        if (!transaction) {
+            transaction = await Receipt.findOne({ transactionId: req.params.id })
+                .populate('tenant', 'name email unit')
+                .populate('record');
+        }
+
+        if (transaction) {
+            isReceiptModel = true;
+        }
+
+        // Fall back to Transaction model
+        if (!transaction) {
+            if (/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+                transaction = await Transaction.findById(req.params.id)
+                    .populate('tenant', 'name email unit')
+                    .populate('record');
+            }
+        }
+
+        if (!transaction) {
+            transaction = await Transaction.findOne({ transactionId: req.params.id })
+                .populate('tenant', 'name email unit')
+                .populate('record');
+        }
 
         if (!transaction) {
             return res.status(404).json({ message: 'Receipt not found' });
         }
 
         // Check ownership for renters
-        if (req.user.role === 'renter' && transaction.tenant._id.toString() !== req.user._id.toString()) {
+        const tenantId = isReceiptModel ? transaction.tenant._id.toString() : transaction.tenant._id.toString();
+        if (req.user.role === 'renter' && tenantId !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Access denied' });
         }
 
         const record = transaction.record;
         const tenant = transaction.tenant;
 
-        // Generate PDF
+        if (isReceiptModel && transaction.pdfUrl) {
+            // Serve the pre-generated PDF directly
+            const filepath = path.join(process.cwd(), transaction.pdfUrl);
+            if (fs.existsSync(filepath)) {
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename=Payment_Receipt_${record.month}_${record.year}.pdf`);
+                return res.sendFile(filepath);
+            }
+        }
+
+        // Generate PDF on-the-fly for Transaction or if pre-generated file was not found
         const pdfBuffer = await generatePaymentReceiptPDF({
             tenantName: tenant.name,
             tenantEmail: tenant.email,

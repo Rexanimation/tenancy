@@ -2,9 +2,11 @@ import express from 'express';
 import { protect, adminOnly, approvedOnly } from '../middleware/auth.js';      
 import Record from '../models/Record.js';
 import User from '../models/User.js';
+import Receipt from '../models/Receipt.js';
 import { sendEmail } from '../utils/emailService.js';
 import { getInvoiceTemplate, getReceiptTemplate } from '../utils/emailTemplates.js';
 import { generatePaymentReceiptPDF } from '../utils/pdfService.js';
+import { createReceipt } from '../utils/receiptManager.js';
 
 const router = express.Router();
 
@@ -134,6 +136,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
         const savedRecord = await record.save();
         const populatedRecord = await Record.findById(savedRecord._id).populate('tenant', 'name email unit rentAmount');
 
+        if (savedRecord.paid && populatedRecord.tenant) {
+            const billTotal = savedRecord.rent + savedRecord.electricity + savedRecord.parking + (savedRecord.municipalFee || 0) + (savedRecord.penalties || 0) + (savedRecord.dues || 0) - (savedRecord.advanceCredit || 0);
+            const finalAmount = billTotal > 0 ? billTotal : 0;
+            const io = req.app.get('socketio');
+            await createReceipt(savedRecord, populatedRecord.tenant, finalAmount, savedRecord.paymentMethod || 'cash', savedRecord.transactionId, io);
+        }
+
         // 📧 Dispatch Invoice Email asynchronously
         if (populatedRecord.tenant && populatedRecord.tenant.email) {
             sendEmail({
@@ -225,7 +234,18 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
             }
         }
 
-        await record.save();
+        const savedRecord = await record.save();
+        const populatedRecord = await Record.findById(savedRecord._id).populate('tenant', 'name email unit rentAmount');
+
+        if (savedRecord.paid && populatedRecord.tenant) {
+            const existingReceipt = await Receipt.findOne({ record: savedRecord._id });
+            if (!existingReceipt) {
+                const billTotal = savedRecord.rent + savedRecord.electricity + savedRecord.parking + (savedRecord.municipalFee || 0) + (savedRecord.penalties || 0) + (savedRecord.dues || 0) - (savedRecord.advanceCredit || 0);
+                const finalAmount = billTotal > 0 ? billTotal : 0;
+                const io = req.app.get('socketio');
+                await createReceipt(savedRecord, populatedRecord.tenant, finalAmount, savedRecord.paymentMethod || 'cash', savedRecord.transactionId, io);
+            }
+        }
 
         const io = req.app.get('socketio');
         if (io) {
@@ -269,6 +289,10 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
             const finalTransactionId = transactionId || 'MANUAL_REF_' + Date.now();
             const finalPaymentMethod = paymentMethod || 'cash';
             const finalAmount = billTotal > 0 ? billTotal : 0;
+
+            // Create persistent receipt in DB and emit sockets
+            const io = req.app.get('socketio');
+            await createReceipt(record, populatedRecord.tenant, finalAmount, finalPaymentMethod, finalTransactionId, io);
 
             // Generate PDF Receipt
             const pdfBuffer = await generatePaymentReceiptPDF({

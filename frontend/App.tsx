@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import useTenancy from './hooks/useTenancy';
 import LoginScreen from './components/LoginScreen';
 import AdminDashboard from './components/AdminDashboard';
@@ -18,6 +18,7 @@ function DashboardSwitcher() {
     currentUser,
     tenants,
     records,
+    receipts,
     logout,
     addRecord,
     approveTenant,
@@ -40,6 +41,7 @@ function DashboardSwitcher() {
         user={currentUser}
         tenants={tenants}
         records={records}
+        receipts={receipts}
         onAddRecord={addRecord}
         onLogout={logout}
         approveTenant={approveTenant}

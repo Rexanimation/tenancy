@@ -69,6 +69,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  town: {
+    type: String,
+    default: '',
+  },
+  city: {
+    type: String,
+    default: '',
+  },
+  locality: {
+    type: String,
+    default: '',
+  },
+  securityDeposit: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });

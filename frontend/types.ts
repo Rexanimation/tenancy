@@ -19,6 +19,10 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   upiId?: string;
+  town?: string;
+  city?: string;
+  locality?: string;
+  securityDeposit?: number;
 }
 
 export interface RecordType {
@@ -89,4 +93,16 @@ export interface PaymentSettings {
   upiId: string;
   qrCodePath: string;
   razorpayKeyId?: string;
+}
+
+export interface ReceiptType {
+  _id: string;
+  tenant: User;
+  record: RecordType;
+  amount: number;
+  paymentMethod: string;
+  transactionId: string;
+  pdfUrl: string;
+  paidDate: string;
+  createdAt: string;
 }

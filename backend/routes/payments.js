@@ -11,6 +11,7 @@ import User from '../models/User.js';
 import { sendEmail } from '../utils/emailService.js';
 import { getReceiptTemplate } from '../utils/emailTemplates.js';
 import { generatePaymentReceiptPDF } from '../utils/pdfService.js';
+import { createReceipt } from '../utils/receiptManager.js';
 
 const router = express.Router();
 
@@ -229,6 +230,10 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                         }
                         // If difference is 0, no change to balance
                         await tenant.save();
+
+                        // Create persistent receipt in DB and emit sockets
+                        const io = req.app.get('socketio');
+                        await createReceipt(record, tenant, transaction.amount, 'razorpay', razorpay_payment_id, io);
 
                         // Look up the admin to get their details as sender (Option A)
                         const adminUser = await User.findOne({ role: 'admin' });

@@ -16,6 +16,8 @@ import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import recordRoutes from './routes/records.js';
 import paymentRoutes from './routes/payments.js';
+import localityRatesRoutes from './routes/localityRates.js';
+import receiptsRoutes from './routes/receipts.js';
 
 // Load environment variables
 dotenv.config();
@@ -51,7 +53,7 @@ io.on('connection', (socket) => {
 });
 
 // Ensure upload directories exist
-const uploadDirs = ['uploads/profiles', 'uploads/qr'];
+const uploadDirs = ['uploads/profiles', 'uploads/qr', 'uploads/receipts'];
 uploadDirs.forEach(dir => {
     const fullPath = path.join(__dirname, dir);
     if (!fs.existsSync(fullPath)) {
@@ -87,6 +89,8 @@ app.use('/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/records', recordRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/locality-rates', localityRatesRoutes);
+app.use('/api/receipts', receiptsRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -163,6 +167,21 @@ const connectDB = async () => {
         });
 
         console.log('✅ Connected to MongoDB');
+
+        // Seed default locality rates
+        const LocalityRate = (await import('./models/LocalityRate.js')).default;
+        const ratesCount = await LocalityRate.countDocuments();
+        if (ratesCount === 0) {
+            await LocalityRate.insertMany([
+                { town: 'Green Valley', city: 'Springfield', locality: 'Sector A', electricityRate: 6.5 },
+                { town: 'Green Valley', city: 'Springfield', locality: 'Sector B', electricityRate: 7.0 },
+                { town: 'Green Valley', city: 'Metropolis', locality: 'Downtown', electricityRate: 8.5 },
+                { town: 'Lake View', city: 'Oakridge', locality: 'North End', electricityRate: 5.5 },
+                { town: 'Lake View', city: 'Oakridge', locality: 'South End', electricityRate: 6.0 },
+                { town: 'Hill Top', city: 'Riverdale', locality: 'Highland', electricityRate: 7.5 }
+            ]);
+            console.log('🌱 Locality rates seeded successfully!');
+        }
 
         // Start daily payment reminder cron job
         startPaymentReminderCron();

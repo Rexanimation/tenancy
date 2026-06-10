@@ -1,14 +1,14 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2, Menu, X } from 'lucide-react';
-import { User, RecordType, NewRecordData, Notification, PaymentSettings } from '../types';
+import { Users, LayoutDashboard, Zap, Car, Home, LogOut, FileText, DollarSign, CheckCircle, XCircle, Bell, UserCheck, UserX, Settings, Trash2, Menu, X, Shield, Receipt } from 'lucide-react';
+import { User, RecordType, NewRecordData, Notification, PaymentSettings, ReceiptType } from '../types';
 import AddRecordModal from './AddRecordModal';
 import PaymentConfirmationModal from './PaymentConfirmationModal';
 import NotificationsPanel from './NotificationsPanel';
 import AdminPaymentSettings from './AdminPaymentSettings';
 import TenantBillingPage from './TenantBillingPage';
 import { formatINR } from '../utils/currency';
-import { paymentAPI } from '../utils/api';
+import { paymentAPI, receiptAPI } from '../utils/api';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const YEARS = Array.from({ length: new Date().getFullYear() - 2020 + 3 }, (_, i) => (2020 + i).toString());
@@ -17,6 +17,7 @@ interface AdminDashboardProps {
   user: User;
   tenants: User[];
   records: RecordType[];
+  receipts: ReceiptType[];
   onAddRecord: (record: NewRecordData) => Promise<any>;
   onLogout: () => void;
   approveTenant: (tenantId: string) => Promise<void>;
@@ -29,7 +30,7 @@ interface AdminDashboardProps {
   refreshRecords: () => Promise<void>;
 }
 
-export default function AdminDashboard({ user, tenants, records, onAddRecord, onLogout, approveTenant, rejectTenant, deleteTenant, updateRecordStatus, updateTenants, notifications, refreshRecords }: AdminDashboardProps) {
+export default function AdminDashboard({ user, tenants, records, receipts, onAddRecord, onLogout, approveTenant, rejectTenant, deleteTenant, updateRecordStatus, updateTenants, notifications, refreshRecords }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -152,10 +153,21 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
     setSelectedTenant(updatedTenant);
   };
 
+  const handleDownloadReceipt = async (receiptId: string) => {
+    try {
+      await receiptAPI.downloadReceipt(receiptId);
+    } catch (error) {
+      console.error('Failed to download receipt:', error);
+      alert('Error downloading receipt');
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'records': return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'tenants': return <TenantsTable tenants={tenants} onApprove={approveTenant} onReject={rejectTenant} onDelete={deleteTenant} onTenantClick={handleTenantClick} />;
+      case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} />;
+      case 'receipts': return <ReceiptsTable receipts={receipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'overview':
       default:
         return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
@@ -187,7 +199,7 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
             </button>
           </div>
           <nav className="flex-1 space-y-4">
-            {['overview', 'records', 'tenants'].map(tab => (
+            {['overview', 'records', 'tenants', 'security-deposits', 'receipts'].map(tab => (
               <button
                 key={tab}
                 onClick={() => {
@@ -199,7 +211,9 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
                 {tab === 'overview' && <LayoutDashboard className="w-6 h-6" />}
                 {tab === 'records' && <FileText className="w-6 h-6" />}
                 {tab === 'tenants' && <Users className="w-6 h-6" />}
-                <span className="capitalize">{tab}</span>
+                {tab === 'security-deposits' && <Shield className="w-6 h-6" />}
+                {tab === 'receipts' && <Receipt className="w-6 h-6" />}
+                <span className="capitalize">{tab.replace('-', ' ')}</span>
               </button>
             ))}
           </nav>
@@ -221,12 +235,14 @@ export default function AdminDashboard({ user, tenants, records, onAddRecord, on
       <aside className="w-64 bg-slate-900 text-slate-300 flex-shrink-0 hidden md:flex flex-col">
         <div className="p-6"><h2 className="text-xl font-bold text-white flex items-center gap-2"><Home className="text-blue-500" /> AdminPortal</h2></div>
         <nav className="flex-1 px-4 space-y-2">
-          {['overview', 'records', 'tenants'].map(tab => (
+          {['overview', 'records', 'tenants', 'security-deposits', 'receipts'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${activeTab === tab ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>
               {tab === 'overview' && <LayoutDashboard className="w-5 h-5" />}
               {tab === 'records' && <FileText className="w-5 h-5" />}
               {tab === 'tenants' && <Users className="w-5 h-5" />}
-              <span className="capitalize">{tab}</span>
+              {tab === 'security-deposits' && <Shield className="w-5 h-5" />}
+              {tab === 'receipts' && <Receipt className="w-5 h-5" />}
+              <span className="capitalize">{tab.replace('-', ' ')}</span>
             </button>
           ))}
         </nav>
@@ -463,3 +479,115 @@ const TenantsTable = ({ tenants, onApprove, onReject, onDelete, onTenantClick }:
     </table></div>
   </div>
 );
+
+const SecurityDepositsTable = ({ tenants, onTenantClick }: { tenants: User[], onTenantClick: (tenant: User) => void }) => {
+  const activeTenants = tenants.filter(t => t.status === 'approved');
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+            <tr>
+              <th className="px-6 py-4">Tenant</th>
+              <th className="px-6 py-4">Contact</th>
+              <th className="px-6 py-4">Base Rent</th>
+              <th className="px-6 py-4">Security Deposit</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {activeTenants.length > 0 ? activeTenants.map((tenant) => (
+              <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4 font-medium text-slate-900">
+                  <button onClick={() => onTenantClick(tenant)} className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                    {tenant.name}
+                  </button>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-slate-600">{tenant.email}</div>
+                  <div className="text-xs text-slate-500">Unit {tenant.unit}</div>
+                </td>
+                <td className="px-6 py-4 font-semibold text-slate-800">{formatINR(tenant.rentAmount || 0)}</td>
+                <td className="px-6 py-4 font-bold text-amber-600">{formatINR(tenant.securityDeposit || 0)}</td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-slate-500">No active tenants found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const ReceiptsTable = ({ 
+  receipts, 
+  onDownload, 
+  onTenantClick, 
+  tenants 
+}: { 
+  receipts: ReceiptType[], 
+  onDownload: (id: string) => void, 
+  onTenantClick: (tenant: User) => void, 
+  tenants: User[] 
+}) => {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+            <tr>
+              <th className="px-6 py-4">Tenant</th>
+              <th className="px-6 py-4">Period</th>
+              <th className="px-6 py-4">Amount Paid</th>
+              <th className="px-6 py-4">Payment Method</th>
+              <th className="px-6 py-4">Transaction ID</th>
+              <th className="px-6 py-4 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {receipts.length > 0 ? receipts.map((receipt) => {
+              const fullTenant = tenants.find(t => t._id === receipt.tenant?._id);
+              return (
+                <tr key={receipt._id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-slate-900">
+                    {fullTenant ? (
+                      <button onClick={() => onTenantClick(fullTenant)} className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-left">
+                        {receipt.tenant?.name}
+                        <div className="text-xs text-slate-500">Unit {receipt.tenant?.unit}</div>
+                      </button>
+                    ) : (
+                      <span>{receipt.tenant?.name || 'Unknown'}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-medium">
+                      {receipt.record?.month} {receipt.record?.year}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-semibold text-green-600">{formatINR(receipt.amount)}</td>
+                  <td className="px-6 py-4 uppercase text-xs font-medium text-slate-600">{receipt.paymentMethod}</td>
+                  <td className="px-6 py-4 font-mono text-xs text-slate-500">{receipt.transactionId}</td>
+                  <td className="px-6 py-4 text-center">
+                    <button 
+                      onClick={() => onDownload(receipt._id)} 
+                      className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
+                    >
+                      <Receipt className="w-3.5 h-3.5" /> Download PDF
+                    </button>
+                  </td>
+                </tr>
+              );
+            }) : (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No receipts found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};

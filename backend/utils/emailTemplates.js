@@ -374,3 +374,31 @@ export const getTenantLoginNotificationTemplate = (name, loginTime) => {
     `;
     return getEmailWrapper('Login Successful - Tenancy Tracker', htmlContent);
 };
+
+export const getSecurityDepositTemplate = (name, amount) => {
+    const htmlContent = `
+        <h2>Security Deposit Receipt 💰</h2>
+        <p>Dear ${name},</p>
+        <p>This is a formal receipt/acknowledgement of your security deposit update on <strong>Tenancy Tracker</strong>.</p>
+        
+        <div class="info-card">
+            <h3 style="margin-top:0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Security Deposit Details</h3>
+            <div class="info-row">
+                <span class="info-label">Tenant Name:</span>
+                <span class="info-value">${name}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Security Deposit Amount:</span>
+                <span class="price">₹${amount}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Updated At:</span>
+                <span class="info-value">${new Date().toLocaleString()}</span>
+            </div>
+        </div>
+        
+        <p style="margin-top: 30px;">This security deposit is held securely under your active lease terms. Please contact your property administrator for any questions.</p>
+    `;
+    return getEmailWrapper('Security Deposit Receipt - Tenancy Tracker', htmlContent);
+};
+

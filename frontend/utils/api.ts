@@ -210,4 +210,66 @@ export const paymentAPI = {
     },
 };
 
+// Locality APIs
+export const localityAPI = {
+    getRates: async () => {
+        const response = await api.get('/api/locality-rates');
+        return response.data;
+    }
+};
+
+// Receipt APIs
+export const receiptAPI = {
+    getReceipts: async () => {
+        const response = await api.get('/api/receipts');
+        return response.data;
+    },
+
+    downloadReceipt: async (receiptId: string) => {
+        const response = await api.get(`/api/receipts/${receiptId}/download`, {
+            responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = 'Rent_Receipt.pdf';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
+
+    downloadReceiptByRecord: async (recordId: string) => {
+        const response = await api.get(`/api/receipts/record/${recordId}/download`, {
+            responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = 'Rent_Receipt.pdf';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    }
+};
+
 export default api;

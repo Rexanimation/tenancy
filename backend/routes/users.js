@@ -6,7 +6,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import User from '../models/User.js';
 import PaymentSettings from '../models/PaymentSettings.js';
 import { sendEmail } from '../utils/emailService.js';
-import { getApprovalTemplate, getRejectionTemplate } from '../utils/emailTemplates.js';
+import { getApprovalTemplate, getRejectionTemplate, getSecurityDepositTemplate } from '../utils/emailTemplates.js';
 
 const router = express.Router();
 
@@ -129,7 +129,7 @@ router.patch('/:id/reject', protect, adminOnly, async (req, res) => {
 // @access  Private
 router.patch('/:id', protect, async (req, res) => {
     try {
-        const { name, unit, rentAmount, electricityRate, electricityUnits, municipalFee, parkingCharges, penalties, dues, upiId } = req.body;
+        const { name, unit, rentAmount, electricityRate, electricityUnits, municipalFee, parkingCharges, penalties, dues, upiId, town, city, locality, securityDeposit } = req.body;
 
         // Users can only update their own profile, unless they're admin
         if (req.user.role !== 'admin' && req.user._id.toString() !== req.params.id) {
@@ -152,8 +152,29 @@ router.patch('/:id', protect, async (req, res) => {
         if (penalties !== undefined && req.user.role === 'admin') user.penalties = penalties;
         if (dues !== undefined && req.user.role === 'admin') user.dues = dues;
         if (upiId !== undefined && req.user.role === 'admin') user.upiId = upiId;
+        if (town !== undefined && req.user.role === 'admin') user.town = town;
+        if (city !== undefined && req.user.role === 'admin') user.city = city;
+        if (locality !== undefined && req.user.role === 'admin') user.locality = locality;
+
+        let sendDepositEmail = false;
+        if (securityDeposit !== undefined && req.user.role === 'admin') {
+            if (user.securityDeposit !== Number(securityDeposit)) {
+                user.securityDeposit = Number(securityDeposit);
+                sendDepositEmail = true;
+            }
+        }
 
         await user.save();
+
+        if (sendDepositEmail && user.email) {
+            sendEmail({
+                to: user.email,
+                subject: 'Security Deposit Receipt - Tenancy Tracker 💰',
+                html: getSecurityDepositTemplate(user.name, user.securityDeposit),
+                senderName: req.user.name,
+                adminEmail: req.user.email
+            }).catch(err => console.error('Silent Email Error (Security Deposit):', err));
+        }
 
         const io = req.app.get('socketio');
         if (io) {

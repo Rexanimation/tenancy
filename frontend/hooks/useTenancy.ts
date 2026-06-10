@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, RecordType, NewRecordData, Notification } from '../types';
-import { authAPI, userAPI, recordAPI } from '../utils/api';
+import { User, RecordType, NewRecordData, Notification, ReceiptType } from '../types';
+import { authAPI, userAPI, recordAPI, receiptAPI } from '../utils/api';
 import { io, Socket } from 'socket.io-client';
 
 let socketInstance: Socket | null = null;
@@ -21,6 +21,7 @@ export default function useTenancy() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [records, setRecords] = useState<RecordType[]>([]);
+  const [receipts, setReceipts] = useState<ReceiptType[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,15 +51,21 @@ export default function useTenancy() {
 
         // Fetch additional data based on role
         if (user.role === 'admin') {
-          const [tenantsData, recordsData] = await Promise.all([
+          const [tenantsData, recordsData, receiptsData] = await Promise.all([
             userAPI.getTenants(),
             recordAPI.getRecords(),
+            receiptAPI.getReceipts(),
           ]);
           setUsers(tenantsData);
           setRecords(recordsData);
+          setReceipts(receiptsData);
         } else {
-          const recordsData = await recordAPI.getTenantRecords(user._id);
+          const [recordsData, receiptsData] = await Promise.all([
+            recordAPI.getTenantRecords(user._id),
+            receiptAPI.getReceipts(),
+          ]);
           setRecords(recordsData);
+          setReceipts(receiptsData);
         }
       } catch (err: any) {
         console.error('Error fetching user:', err);
@@ -217,12 +224,21 @@ export default function useTenancy() {
       }
     };
 
+    const handleReceiptCreated = (newReceipt: ReceiptType) => {
+      console.log('⚡ Socket event received: receipt_created', newReceipt);
+      setReceipts(prev => {
+        if (prev.some(r => r._id === newReceipt._id)) return prev;
+        return [newReceipt, ...prev];
+      });
+    };
+
     // Register events
     socket.on('record_created', handleRecordCreated);
     socket.on('record_updated', handleRecordUpdated);
     socket.on('record_deleted', handleRecordDeleted);
     socket.on('user_updated', handleUserUpdated);
     socket.on('user_deleted', handleUserDeleted);
+    socket.on('receipt_created', handleReceiptCreated);
 
     // 🟢 Cleanup: Unsubscribe listeners on unmount or user change
     return () => {
@@ -232,6 +248,7 @@ export default function useTenancy() {
       socket.off('record_deleted', handleRecordDeleted);
       socket.off('user_updated', handleUserUpdated);
       socket.off('user_deleted', handleUserDeleted);
+      socket.off('receipt_created', handleReceiptCreated);
     };
   }, [currentUser, logout]);
 
@@ -375,6 +392,7 @@ export default function useTenancy() {
     currentUser,
     tenants,
     records,
+    receipts,
     googleSignIn,
     logout,
     addRecord,

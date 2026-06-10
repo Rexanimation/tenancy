@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, User as UserIcon, Home, Zap, Building, Car, AlertTriangle, IndianRupee, Save } from 'lucide-react';
 import { User, NewRecordData } from '../types';
 import { formatINR, formatINRWithDecimals } from '../utils/currency';
-import { userAPI, localityAPI } from '../utils/api';
+import { userAPI } from '../utils/api';
 import { getProfileImageUrl } from '../utils/images';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -20,20 +20,7 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
     const [isSaving, setIsSaving] = useState(false);
     const [isCreatingBill, setIsCreatingBill] = useState(false);
 
-    // Locality rates list from backend
-    const [localityRates, setLocalityRates] = useState<any[]>([]);
 
-    useEffect(() => {
-        const fetchRates = async () => {
-            try {
-                const rates = await localityAPI.getRates();
-                setLocalityRates(rates);
-            } catch (error) {
-                console.error('Failed to load locality rates:', error);
-            }
-        };
-        fetchRates();
-    }, []);
 
     // Tenant settings state
     const [settings, setSettings] = useState({
@@ -104,51 +91,7 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
         });
     }, [tenant._id, tenant.rentAmount, tenant.electricityRate, tenant.electricityUnits, tenant.municipalFee, tenant.parkingCharges, tenant.unit, tenant.penalties, tenant.dues, tenant.advancePaid, tenant.town, tenant.city, tenant.locality, tenant.securityDeposit]);
 
-    const handleTownChange = (town: string) => {
-        setSettings(prev => {
-            const nextCities = Array.from(new Set(localityRates.filter(r => r.town === town).map(r => r.city)));
-            const firstCity = nextCities[0] || '';
-            
-            const nextLocalities = localityRates.filter(r => r.town === town && r.city === firstCity);
-            const firstLocality = nextLocalities[0]?.locality || '';
-            const matchingRate = nextLocalities[0]?.electricityRate || 0;
-            
-            return {
-                ...prev,
-                town,
-                city: firstCity,
-                locality: firstLocality,
-                electricityRate: matchingRate
-            };
-        });
-    };
 
-    const handleCityChange = (city: string) => {
-        setSettings(prev => {
-            const nextLocalities = localityRates.filter(r => r.town === prev.town && r.city === city);
-            const firstLocality = nextLocalities[0]?.locality || '';
-            const matchingRate = nextLocalities[0]?.electricityRate || 0;
-            
-            return {
-                ...prev,
-                city,
-                locality: firstLocality,
-                electricityRate: matchingRate
-            };
-        });
-    };
-
-    const handleLocalityChange = (locality: string) => {
-        setSettings(prev => {
-            const matching = localityRates.find(r => r.town === prev.town && r.city === prev.city && r.locality === locality);
-            const matchingRate = matching ? matching.electricityRate : 0;
-            return {
-                ...prev,
-                locality,
-                electricityRate: matchingRate
-            };
-        });
-    };
 
     const handleSaveSettings = async () => {
         setIsSaving(true);
@@ -274,61 +217,6 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {/* Location Dropdowns / Displays first */}
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Town</label>
-                            {isEditingSettings ? (
-                                <select 
-                                    value={settings.town} 
-                                    onChange={(e) => handleTownChange(e.target.value)} 
-                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-                                >
-                                    <option value="">Select Town</option>
-                                    {Array.from(new Set(localityRates.map(r => r.town))).map(town => (
-                                        <option key={town} value={town}>{town}</option>
-                                    ))}
-                                </select>
-                            ) : (
-                                <p className="font-semibold text-slate-800">{tenant.town || 'Not set'}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">City</label>
-                            {isEditingSettings ? (
-                                <select 
-                                    value={settings.city} 
-                                    onChange={(e) => handleCityChange(e.target.value)} 
-                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-                                    disabled={!settings.town}
-                                >
-                                    <option value="">Select City</option>
-                                    {Array.from(new Set(localityRates.filter(r => r.town === settings.town).map(r => r.city))).map(city => (
-                                        <option key={city} value={city}>{city}</option>
-                                    ))}
-                                </select>
-                            ) : (
-                                <p className="font-semibold text-slate-800">{tenant.city || 'Not set'}</p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Locality</label>
-                            {isEditingSettings ? (
-                                <select 
-                                    value={settings.locality} 
-                                    onChange={(e) => handleLocalityChange(e.target.value)} 
-                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
-                                    disabled={!settings.city}
-                                >
-                                    <option value="">Select Locality</option>
-                                    {localityRates.filter(r => r.town === settings.town && r.city === settings.city).map(r => r.locality).map(loc => (
-                                        <option key={loc} value={loc}>{loc}</option>
-                                    ))}
-                                </select>
-                            ) : (
-                                <p className="font-semibold text-slate-800">{tenant.locality || 'Not set'}</p>
-                            )}
-                        </div>
-
                         {/* Existing settings fields */}
                         <div>
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Base Rent</label>
@@ -353,9 +241,8 @@ export default function TenantBillingPage({ tenant, onBack, onAddRecord, onUpdat
                                     type="number" 
                                     step="0.1" 
                                     value={settings.electricityRate} 
-                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-slate-100 cursor-not-allowed text-slate-500 font-medium" 
-                                    readOnly 
-                                    disabled 
+                                    onChange={(e) => setSettings(prev => ({ ...prev, electricityRate: Number(e.target.value) }))}
+                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" 
                                 />
                             ) : (
                                 <p className="font-semibold text-yellow-600">{formatINRWithDecimals(tenant.electricityRate || 0)}/unit</p>

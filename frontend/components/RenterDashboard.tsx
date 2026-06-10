@@ -1,6 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera, Edit2, Check, X, Download } from 'lucide-react';
+import { Calendar, Car, Home, LogOut, Zap, CheckCircle, XCircle, Bell, Receipt, Camera, Edit2, Check, X } from 'lucide-react';
 import { User, RecordType, Notification } from '../types';
 import NotificationsPanel from './NotificationsPanel';
 import PaymentPage from './PaymentPage';
@@ -8,7 +8,7 @@ import PaymentReceipt from './PaymentReceipt';
 import ProfilePictureUpload from './ProfilePictureUpload';
 import { formatINR } from '../utils/currency';
 import { getProfileImageUrl } from '../utils/images';
-import { userAPI, receiptAPI } from '../utils/api';
+import { userAPI } from '../utils/api';
 
 interface RenterDashboardProps {
   user: User;
@@ -326,21 +326,6 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                               <Receipt className="w-4 h-4" />
                             </button>
                           )}
-                          <button
-                            onClick={async () => {
-                              try {
-                                await receiptAPI.downloadReceiptByRecord(record._id);
-                              } catch (err) {
-                                console.error('Failed to download receipt:', err);
-                                alert('Failed to download receipt');
-                              }
-                            }}
-                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded transition-colors flex items-center gap-1"
-                            title="Download PDF Receipt"
-                          >
-                            <Download className="w-4 h-4" />
-                            <span className="text-xs font-semibold">Download</span>
-                          </button>
                         </>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-xs font-medium border border-red-100"><XCircle className="w-3.5 h-3.5" /> Pending</span>

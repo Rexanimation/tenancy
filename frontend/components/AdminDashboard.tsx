@@ -227,7 +227,7 @@ export default function AdminDashboard({ user, tenants, records, receipts, onAdd
       case 'tenants': return <TenantsTable tenants={tenants} onApprove={approveTenant} onReject={rejectTenant} onDelete={deleteTenant} onTenantClick={handleTenantClick} />;
       case 'security-deposits': return <SecurityDepositsTable tenants={tenants} onTenantClick={handleTenantClick} onSaveDeposit={handleSaveSecurityDeposit} />;
       case 'receipts': return <ReceiptsTable receipts={filteredReceipts} onDownload={handleDownloadReceipt} onTenantClick={handleTenantClick} tenants={tenants} onView={setViewReceiptId} />;
-      case 'late-payments': return <LatePaymentsTable records={records} onSaveFine={handleSaveFine} onTenantClick={handleTenantClick} tenants={tenants} />;
+      case 'late-payments': return <LatePaymentsTable records={records} receipts={receipts} onSaveFine={handleSaveFine} onTenantClick={handleTenantClick} tenants={tenants} />;
       case 'overview':
       default:
         return <RecordsTable filteredRecords={filteredRecords} onMarkAsPaid={handleMarkAsPaid} onTenantClick={handleTenantClick} tenants={tenants} />;
@@ -732,11 +732,13 @@ const ReceiptsTable = ({
 
 const LatePaymentsTable = ({
   records,
+  receipts,
   onSaveFine,
   onTenantClick,
   tenants
 }: {
   records: RecordType[],
+  receipts: ReceiptType[],
   onSaveFine: (recordId: string, amount: number) => Promise<void>,
   onTenantClick: (tenant: User) => void,
   tenants: User[]
@@ -754,11 +756,24 @@ const LatePaymentsTable = ({
       const tenantExists = tenants.some(t => t._id === record.tenant?._id && t.status === 'approved');
       if (!tenantExists) return false;
 
+      // Check if there are multiple payments for this record
+      const recordReceipts = receipts.filter(rec => {
+        const recRecordId = rec.record && typeof rec.record === 'object'
+          ? (rec.record as any)._id
+          : rec.record;
+        return String(recRecordId) === String(record._id);
+      });
+      const hasMultiplePayments = recordReceipts.length > 1;
+
       const monthIndex = months.indexOf(record.month);
       const year = parseInt(record.year);
       if (monthIndex === -1 || isNaN(year)) return false;
 
       const dueDate = new Date(year, monthIndex, 10, 23, 59, 59);
+
+      if (hasMultiplePayments) {
+        return true; // Always show in late payments if they paid multiple times
+      }
 
       if (record.paid) {
         if (!record.paidDate) return false;
@@ -769,7 +784,7 @@ const LatePaymentsTable = ({
         return today.getTime() > dueDate.getTime();
       }
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [records, tenants]);
+  }, [records, receipts, tenants]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -797,6 +812,14 @@ const LatePaymentsTable = ({
               const hasFine = (record.penalties || 0) > 0;
               const fineInput = fineAmounts[record._id] ?? (hasFine ? String(record.penalties) : '');
 
+              const recordReceipts = receipts.filter(rec => {
+                const recRecordId = rec.record && typeof rec.record === 'object'
+                  ? (rec.record as any)._id
+                  : rec.record;
+                return String(recRecordId) === String(record._id);
+              });
+              const paymentsCount = recordReceipts.length;
+
               return (
                 <tr key={record._id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-900">
@@ -820,10 +843,16 @@ const LatePaymentsTable = ({
                   <td className="px-6 py-4">
                     {record.paid ? (
                       <div className="text-slate-700">
-                        <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium border border-green-100">Paid Late</span>
+                        {paymentsCount > 1 ? (
+                          <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full text-xs font-medium border border-orange-100">
+                            Installment Payment ({paymentsCount} payments)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs font-medium border border-green-100">Paid Late</span>
+                        )}
                         {record.paidDate && (
                           <div className="text-xs text-slate-500 mt-0.5">
-                            Paid on {new Date(record.paidDate).toLocaleDateString('en-IN')}
+                            Last paid on {new Date(record.paidDate).toLocaleDateString('en-IN')}
                           </div>
                         )}
                       </div>

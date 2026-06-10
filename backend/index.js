@@ -8,6 +8,8 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import { startPaymentReminderCron } from './utils/cronService.js';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 // Routes
 import authRoutes from './routes/auth.js';
@@ -23,6 +25,30 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Render)
+
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'https://tenancy-frontend.onrender.com'],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+        credentials: true
+    }
+});
+
+app.set('socketio', io);
+
+io.on('connection', (socket) => {
+    console.log(`⚡ Socket Connected: ${socket.id}`);
+
+    socket.on('join_room', (userId) => {
+        socket.join(userId);
+        console.log(`👤 User joined room: ${userId}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`🔌 Socket Disconnected: ${socket.id}`);
+    });
+});
 
 // Ensure upload directories exist
 const uploadDirs = ['uploads/profiles', 'uploads/qr'];
@@ -141,8 +167,8 @@ const connectDB = async () => {
         // Start daily payment reminder cron job
         startPaymentReminderCron();
 
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
+        httpServer.listen(PORT, () => {
+            console.log(`🚀 Server + Sockets running on port ${PORT}`);
             if (process.env.FRONTEND_URL) {
                 console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
             }

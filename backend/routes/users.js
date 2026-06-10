@@ -75,6 +75,11 @@ router.patch('/:id/approve', protect, adminOnly, async (req, res) => {
             adminEmail: req.user.email
         }).catch(err => console.error('Silent Email Error (Approval):', err));
 
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('user_updated', user);
+        }
+
         res.json({ message: 'Tenant approved successfully', user });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -107,6 +112,11 @@ router.patch('/:id/reject', protect, adminOnly, async (req, res) => {
             senderName: req.user.name,
             adminEmail: req.user.email
         }).catch(err => console.error('Silent Email Error (Rejection):', err));
+
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('user_updated', user);
+        }
 
         res.json({ message: 'Tenant rejected successfully', user });
     } catch (error) {
@@ -144,6 +154,11 @@ router.patch('/:id', protect, async (req, res) => {
         if (upiId !== undefined && req.user.role === 'admin') user.upiId = upiId;
 
         await user.save();
+
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('user_updated', user);
+        }
 
         res.json({ message: 'Profile updated successfully', user });
     } catch (error) {
@@ -193,6 +208,11 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
 
         // Delete the user
         await User.findByIdAndDelete(req.params.id);
+
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('user_deleted', { id: req.params.id });
+        }
 
         res.json({ message: 'Tenant and their records deleted successfully' });
     } catch (error) {

@@ -269,7 +269,13 @@ router.post('/razorpay/verify', protect, approvedOnly, async (req, res) => {
                             ]
                         }).catch(err => console.error('Silent Email Error (Receipt):', err));
 
-
+                        // Emit socket events for real-time updates
+                        const io = req.app.get('socketio');
+                        if (io) {
+                            const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
+                            io.emit('record_updated', populatedRecord);
+                            io.emit('user_updated', tenant);
+                        }
                     }
                 }
             }

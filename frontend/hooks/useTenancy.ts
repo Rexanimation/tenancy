@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, RecordType, NewRecordData, Notification } from '../types';
 import { authAPI, userAPI, recordAPI } from '../utils/api';
+import { io, Socket } from 'socket.io-client';
+
+let socketInstance: Socket | null = null;
+const getSocketInstance = (): Socket => {
+  if (!socketInstance) {
+    const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    socketInstance = io(socketUrl, {
+      withCredentials: true,
+      autoConnect: true
+    });
+  }
+  return socketInstance;
+};
 
 export type DemoRole = 'admin' | 'existing_renter' | 'new_renter';
 
@@ -142,6 +155,85 @@ export default function useTenancy() {
       window.location.href = '/login';
     }
   }, []);
+
+  // Set up socket connection and event listeners
+  useEffect(() => {
+    if (!currentUser || currentUser.status !== 'approved') return;
+
+    const socket = getSocketInstance();
+
+    // Join room for the logged-in user
+    socket.emit('join_room', currentUser._id);
+    console.log(`⚡ Socket joined room: ${currentUser._id}`);
+
+    // Event Handlers
+    const handleRecordCreated = (newRecord: RecordType) => {
+      console.log('⚡ Socket event received: record_created', newRecord);
+      setRecords(prev => {
+        if (prev.some(r => r._id === newRecord._id)) return prev;
+
+        const tenantId = newRecord.tenant && typeof newRecord.tenant === 'object'
+          ? (newRecord.tenant as any)._id
+          : String(newRecord.tenant);
+        
+        // Match user role / ownership
+        if (
+          currentUser.role === 'admin' || 
+          tenantId === currentUser._id
+        ) {
+          return [newRecord, ...prev];
+        }
+        return prev;
+      });
+    };
+
+    const handleRecordUpdated = (updatedRecord: RecordType) => {
+      console.log('⚡ Socket event received: record_updated', updatedRecord);
+      setRecords(prev => prev.map(r => r._id === updatedRecord._id ? updatedRecord : r));
+    };
+
+    const handleRecordDeleted = (data: { id: string }) => {
+      console.log('⚡ Socket event received: record_deleted', data.id);
+      setRecords(prev => prev.filter(r => r._id !== data.id));
+    };
+
+    const handleUserUpdated = (updatedUser: User) => {
+      console.log('⚡ Socket event received: user_updated', updatedUser);
+      if (currentUser.role === 'admin') {
+        setUsers(prev => prev.map(u => u._id === updatedUser._id ? updatedUser : u));
+      }
+      if (currentUser._id === updatedUser._id) {
+        setCurrentUser(prev => prev ? { ...prev, ...updatedUser } : updatedUser);
+      }
+    };
+
+    const handleUserDeleted = (data: { id: string }) => {
+      console.log('⚡ Socket event received: user_deleted', data.id);
+      if (currentUser.role === 'admin') {
+        setUsers(prev => prev.filter(u => u._id !== data.id));
+      }
+      if (currentUser._id === data.id) {
+        logout();
+      }
+    };
+
+    // Register events
+    socket.on('record_created', handleRecordCreated);
+    socket.on('record_updated', handleRecordUpdated);
+    socket.on('record_deleted', handleRecordDeleted);
+    socket.on('user_updated', handleUserUpdated);
+    socket.on('user_deleted', handleUserDeleted);
+
+    // 🟢 Cleanup: Unsubscribe listeners on unmount or user change
+    return () => {
+      console.log('🔌 Cleaning up socket listeners');
+      socket.off('record_created', handleRecordCreated);
+      socket.off('record_updated', handleRecordUpdated);
+      socket.off('record_deleted', handleRecordDeleted);
+      socket.off('user_updated', handleUserUpdated);
+      socket.off('user_deleted', handleUserDeleted);
+    };
+  }, [currentUser, logout]);
 
   const addRecord = useCallback(async (recordData: NewRecordData): Promise<RecordType | null> => {
     try {

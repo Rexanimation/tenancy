@@ -160,6 +160,15 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
 
 
+        const io = req.app.get('socketio');
+        if (io) {
+            if (wasUpdated) {
+                io.emit('record_updated', populatedRecord);
+            } else {
+                io.emit('record_created', populatedRecord);
+            }
+        }
+
         res.status(wasUpdated ? 200 : 201).json({
             ...populatedRecord.toObject(),
             message: wasUpdated ? `Bill for ${month} ${year} was updated` : undefined
@@ -218,7 +227,11 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
         await record.save();
 
-        const populatedRecord = await Record.findById(record._id).populate('tenant', 'name email unit rentAmount');
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('record_updated', populatedRecord);
+        }
+
         res.json(populatedRecord);
 
     } catch (error) {
@@ -294,6 +307,11 @@ router.patch('/:id/status', protect, adminOnly, async (req, res) => {
 
         }
 
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('record_updated', populatedRecord);
+        }
+
         res.json(populatedRecord);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -312,6 +330,11 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
         }
 
         await record.deleteOne();
+
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('record_deleted', { id: req.params.id });
+        }
 
         res.json({ message: 'Record deleted successfully' });
     } catch (error) {

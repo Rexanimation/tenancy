@@ -6,7 +6,7 @@ import { io, Socket } from 'socket.io-client';
 let socketInstance: Socket | null = null;
 const getSocketInstance = (): Socket => {
   if (!socketInstance) {
-    const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
     socketInstance = io(socketUrl, {
       withCredentials: true,
       autoConnect: true

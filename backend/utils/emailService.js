@@ -41,10 +41,15 @@ const getOAuth2Client = async (adminEmail) => {
         throw new Error(`Refresh token for ${adminEmail} is not configured in your .env file.`);
     }
 
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        throw new Error('Google OAuth client ID and secret must be configured in environment variables.');
+    }
+
+    const redirectUri = process.env.GOOGLE_CALLBACK_URL || 'https://developers.google.com/oauthplayground';
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        "https://developers.google.com/oauthplayground"
+        redirectUri
     );
 
     oauth2Client.setCredentials({ refresh_token: refreshToken });

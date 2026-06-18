@@ -354,7 +354,6 @@ export default function RenterDashboard({ user, records, onLogout, notifications
                           const recordBillTotal = record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0);
                           const recordPaidAmount = record.paidAmount || 0;
                           const recordRemainingDue = Math.max(0, recordBillTotal - recordPaidAmount);
-                          const recordIsFullyPaid = recordRemainingDue === 0;
 
                           return (
                             <>

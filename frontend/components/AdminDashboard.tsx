@@ -474,7 +474,7 @@ const RecordsTable = ({ filteredRecords, onMarkAsPaid, onTenantClick, tenants }:
                 <div className="flex flex-col">
                   <span className="font-bold text-slate-800">{formatINR(record.rent + record.electricity + record.parking + (record.municipalFee || 0) + (record.penalties || 0) + (record.dues || 0))}</span>
                   {(record.paidAmount || 0) > 0 && (
-                    <span className="text-xs font-semibold text-green-600">Paid: {formatINR(record.paidAmount)}</span>
+                    <span className="text-xs font-semibold text-green-600">Paid: {formatINR(record.paidAmount || 0)}</span>
                   )}
                 </div>
               </td>
@@ -774,32 +774,21 @@ const LatePaymentsTable = ({
       const tenantExists = tenants.some(t => t._id === record.tenant?._id && t.status === 'approved');
       if (!tenantExists) return false;
 
-      // Check if there are multiple payments for this record
-      const recordReceipts = receipts.filter(rec => {
-        const recRecordId = rec.record && typeof rec.record === 'object'
-          ? (rec.record as any)._id
-          : rec.record;
-        return String(recRecordId) === String(record._id);
-      });
-      const hasMultiplePayments = recordReceipts.length > 1;
-
       const monthIndex = months.indexOf(record.month);
       const year = parseInt(record.year);
       if (monthIndex === -1 || isNaN(year)) return false;
 
       const dueDate = new Date(year, monthIndex, 10, 23, 59, 59);
-
-      if (hasMultiplePayments) {
-        return true; // Always show in late payments if they paid multiple times
-      }
+      // Late threshold is 15 days after the due date (10th + 15 days = 25th of the month)
+      const lateThresholdDate = new Date(dueDate.getTime() + 15 * 24 * 60 * 60 * 1000);
 
       if (record.paid) {
         if (!record.paidDate) return false;
-        // Paid but paid after the 10th
-        return new Date(record.paidDate).getTime() > dueDate.getTime();
+        // Paid but paid more than 15 days after the due date
+        return new Date(record.paidDate).getTime() > lateThresholdDate.getTime();
       } else {
-        // Unpaid and current date is after the 10th
-        return today.getTime() > dueDate.getTime();
+        // Unpaid and current date is more than 15 days after the due date
+        return today.getTime() > lateThresholdDate.getTime();
       }
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [records, receipts, tenants]);
@@ -809,7 +798,7 @@ const LatePaymentsTable = ({
       <div className="p-5 border-b border-slate-100">
         <h3 className="font-bold text-slate-800 text-lg">Late Payments & Fines</h3>
         <p className="text-xs text-slate-500 mt-1">
-          Lists billing records paid after the 10th of the billing month, or currently unpaid/overdue. Admin can decide and save a penalty fine for each late payment. Once saved, the fine cannot be changed.
+          Lists billing records paid more than 15 days after the due date (10th of the month), or currently overdue by more than 15 days. Admin can decide and save a penalty fine for each late payment. Once saved, the fine cannot be changed.
         </p>
       </div>
       <div className="overflow-x-auto">
